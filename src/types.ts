@@ -42,3 +42,14 @@ export interface MessagePosition {
   width: number;
   height: number;
 }
+
+export interface InviteToken {
+  id?: string;
+  creatorUid: string;
+  creatorName: string;
+  creatorCode: string;
+  createdAt: number;
+  expiresAt: number;
+  used: boolean;
+  usedBy?: string;
+}

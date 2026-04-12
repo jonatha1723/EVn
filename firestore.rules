@@ -91,5 +91,26 @@ service cloud.firestore {
         allow delete: if isAuthenticated() && (request.auth.uid == resource.data.senderId || isAdmin());
       }
     }
+
+    // Convites temporários (validade de 1 hora, uso único)
+    match /inviteTokens/{tokenId} {
+      allow read: if true;
+      allow create: if isAuthenticated()
+        && request.resource.data.creatorUid == request.auth.uid
+        && request.resource.data.keys().hasAll(['creatorUid', 'creatorName', 'creatorCode', 'createdAt', 'expiresAt', 'used'])
+        && request.resource.data.creatorName is string
+        && request.resource.data.creatorName.size() < 128
+        && request.resource.data.creatorCode is string
+        && request.resource.data.creatorCode.size() < 128
+        && request.resource.data.createdAt is number
+        && request.resource.data.expiresAt is number
+        && request.resource.data.used == false;
+      allow update: if isAuthenticated()
+        && resource.data.used == false
+        && request.resource.data.used == true
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['used', 'usedBy'])
+        && request.resource.data.usedBy == request.auth.uid;
+      allow delete: if isAuthenticated() && resource.data.creatorUid == request.auth.uid;
+    }
   }
 }
