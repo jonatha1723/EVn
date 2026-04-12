@@ -40,24 +40,12 @@ export interface FirestoreErrorInfo {
 }
 
 export function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
-  const errInfo: FirestoreErrorInfo = {
-    error: error instanceof Error ? error.message : String(error),
-    authInfo: {
-      userId: auth.currentUser?.uid,
-      email: auth.currentUser?.email,
-      emailVerified: auth.currentUser?.emailVerified,
-      isAnonymous: auth.currentUser?.isAnonymous,
-      tenantId: auth.currentUser?.tenantId,
-      providerInfo: auth.currentUser?.providerData.map(provider => ({
-        providerId: provider.providerId,
-        displayName: provider.displayName,
-        email: provider.email,
-        photoUrl: provider.photoURL
-      })) || []
-    },
-    operationType,
-    path
-  };
-  console.error('Firestore Error: ', JSON.stringify(errInfo));
-  throw new Error(JSON.stringify(errInfo));
+  // Saneamento: Não expomos dados do usuário (authInfo) no log ou erro.
+  const message = error instanceof Error ? error.message : String(error);
+  const errorCode = (error as any)?.code || 'unknown';
+  
+  console.error(`[Firestore Error] Op: ${operationType} | Code: ${errorCode}`);
+  
+  // Retornamos um erro genérico para a interface
+  throw new Error(`Erro no banco de dados (${operationType}). Por favor, tente novamente.`);
 }

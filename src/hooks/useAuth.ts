@@ -96,12 +96,20 @@ export const useAuth = () => {
 
   const getErrorMessage = (code: string) => {
     switch (code) {
-      case 'auth/user-not-found': return 'Usuário não encontrado.';
-      case 'auth/wrong-password': return 'Senha incorreta.';
-      case 'auth/email-already-in-use': return 'Este e-mail já está sendo usado.';
-      case 'auth/weak-password': return 'A senha deve ter pelo menos 6 caracteres.';
-      case 'auth/invalid-email': return 'E-mail inválido.';
-      default: return 'Ocorreu um erro. Tente novamente.';
+      case 'auth/user-not-found':
+      case 'auth/wrong-password':
+      case 'auth/invalid-credential':
+        return 'E-mail ou senha incorretos.';
+      case 'auth/email-already-in-use':
+        return 'Este e-mail já está sendo usado por outra conta.';
+      case 'auth/weak-password':
+        return 'A senha é muito fraca. Use pelo menos 6 caracteres.';
+      case 'auth/invalid-email':
+        return 'O formato do e-mail é inválido.';
+      case 'auth/too-many-requests':
+        return 'Muitas tentativas sem sucesso. Tente novamente mais tarde.';
+      default:
+        return 'Ocorreu uma falha no acesso. Verifique sua conexão e tente de novo.';
     }
   };
 
