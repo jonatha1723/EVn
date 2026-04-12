@@ -1,5 +1,5 @@
 import React from 'react';
-import { User as UserIcon } from 'lucide-react';
+import { User as UserIcon, MessageSquare } from 'lucide-react';
 import { motion } from 'motion/react';
 import { UserData } from '../../types';
 
@@ -20,26 +20,59 @@ export const ContactList: React.FC<ContactListProps> = ({
       <div className="space-y-1">
         {contacts.length === 0 ? (
           <div className="flex flex-col items-center justify-center text-center p-8 mt-4 bg-zinc-900/20 rounded-[2rem] border border-zinc-800/50 border-dashed">
-            <UserIcon className="w-8 h-8 text-zinc-700 mb-3" />
-            <p className="text-zinc-500 text-xs leading-relaxed">Nenhuma conversa ativa.<br/>Adicione um ID para começar.</p>
+            <div className="w-16 h-16 rounded-2xl bg-zinc-900/50 border border-zinc-800/50 flex items-center justify-center mb-4">
+              <UserIcon className="w-8 h-8 text-zinc-700" />
+            </div>
+            <p className="text-zinc-500 text-xs leading-relaxed font-medium">Nenhuma conversa ativa.</p>
+            <p className="text-zinc-600 text-[10px] mt-1">Adicione um ID ou compartilhe seu link de convite.</p>
           </div>
         ) : (
-          contacts.map(contact => (
-            <motion.button
-              key={contact.uid}
-              whileTap={{ scale: 0.98 }}
-              onClick={() => setActiveContact(contact)}
-              className={`w-full flex items-center gap-4 p-4 rounded-3xl transition-all text-left ${activeContact?.uid === contact.uid ? 'bg-zinc-900 border border-zinc-800 shadow-lg' : 'hover:bg-zinc-900/50 border border-transparent'}`}
-            >
-              <div className="w-12 h-12 rounded-2xl bg-zinc-900 border border-zinc-800 text-emerald-500 flex items-center justify-center font-bold text-lg shadow-inner">
-                {contact.displayName.charAt(0).toUpperCase()}
-              </div>
-              <div className="flex-1 overflow-hidden">
-                <p className="font-semibold text-zinc-100 truncate">{contact.displayName}</p>
-                <p className="text-[10px] text-zinc-500 font-mono truncate mt-0.5 tracking-wider">{contact.uniqueCode}</p>
-              </div>
-            </motion.button>
-          ))
+          contacts.map((contact, index) => {
+            const isActive = activeContact?.uid === contact.uid;
+            return (
+              <motion.button
+                key={contact.uid}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.03 }}
+                whileHover={{ x: 4 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => setActiveContact(contact)}
+                className={`w-full flex items-center gap-4 p-4 rounded-3xl transition-all text-left group ${
+                  isActive 
+                    ? 'bg-emerald-500/5 border border-emerald-500/20 shadow-lg shadow-emerald-900/5' 
+                    : 'hover:bg-zinc-900/70 border border-transparent'
+                }`}
+              >
+                {/* Avatar */}
+                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-bold text-lg shrink-0 transition-all ${
+                  isActive 
+                    ? 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-400' 
+                    : 'bg-zinc-900 border border-zinc-800 text-zinc-400 group-hover:text-emerald-500 group-hover:border-zinc-700'
+                }`}>
+                  {contact.displayName.charAt(0).toUpperCase()}
+                </div>
+
+                {/* Info */}
+                <div className="flex-1 overflow-hidden">
+                  <div className="flex items-center justify-between">
+                    <p className={`font-semibold truncate transition-colors ${
+                      isActive ? 'text-emerald-50' : 'text-zinc-100 group-hover:text-white'
+                    }`}>
+                      {contact.displayName}
+                    </p>
+                    {/* Indicador de conversa no desktop */}
+                    <MessageSquare className={`w-3.5 h-3.5 hidden md:block shrink-0 transition-all ${
+                      isActive ? 'text-emerald-500' : 'text-zinc-700 group-hover:text-zinc-500'
+                    }`} />
+                  </div>
+                  <p className="text-[10px] text-zinc-500 font-mono truncate mt-0.5 tracking-wider">
+                    {contact.uniqueCode}
+                  </p>
+                </div>
+              </motion.button>
+            );
+          })
         )}
       </div>
     </div>

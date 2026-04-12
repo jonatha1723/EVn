@@ -111,11 +111,34 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
             animate={{ opacity: 1 }}
             className="hidden md:flex flex-1 flex-col items-center justify-center text-zinc-500 bg-zinc-950"
           >
-            <div className="w-24 h-24 bg-zinc-900 rounded-[2.5rem] flex items-center justify-center mb-8 border border-zinc-800 shadow-2xl">
-              <ShieldCheck className="w-12 h-12 text-emerald-500/30" />
+            {/* Anel animado */}
+            <div className="relative mb-10">
+              <motion.div
+                animate={{ rotate: 360 }}
+                transition={{ duration: 20, repeat: Infinity, ease: 'linear' }}
+                className="absolute inset-0 w-28 h-28 rounded-[2.5rem] border-2 border-dashed border-emerald-500/10"
+              />
+              <div className="w-28 h-28 bg-zinc-900 rounded-[2.5rem] flex items-center justify-center border border-zinc-800 shadow-2xl">
+                <ShieldCheck className="w-14 h-14 text-emerald-500/30" />
+              </div>
             </div>
-            <h2 className="text-3xl font-bold text-white mb-4 tracking-tight">Privacidade Total</h2>
-            <p className="max-w-sm text-center text-zinc-500 leading-relaxed font-medium">Selecione uma conversa para começar a trocar mensagens seguras e criptografadas.</p>
+
+            <h2 className="text-3xl font-bold text-white mb-3 tracking-tight">Privacidade Total</h2>
+            <p className="max-w-md text-center text-zinc-500 leading-relaxed font-medium mb-8">
+              Selecione uma conversa na barra lateral para começar a trocar mensagens criptografadas de ponta a ponta.
+            </p>
+
+            {/* Dicas no desktop */}
+            <div className="flex items-center gap-6 text-zinc-600 text-xs">
+              <div className="flex items-center gap-2 bg-zinc-900/50 px-4 py-2.5 rounded-xl border border-zinc-800/50">
+                <span className="text-emerald-500/50">🔒</span>
+                <span>Criptografia AES-GCM</span>
+              </div>
+              <div className="flex items-center gap-2 bg-zinc-900/50 px-4 py-2.5 rounded-xl border border-zinc-800/50">
+                <span className="text-emerald-500/50">⏱</span>
+                <span>Convites de 1 hora</span>
+              </div>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
