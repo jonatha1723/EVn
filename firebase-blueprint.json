@@ -1,0 +1,57 @@
+{
+  "entities": {
+    "user": {
+      "title": "User",
+      "description": "User profile with a unique 15-digit code.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "Firebase Auth UID" },
+        "displayName": { "type": "string", "description": "User display name" },
+        "email": { "type": "string", "description": "User email" },
+        "uniqueCode": { "type": "string", "description": "15-digit unique code" }
+      },
+      "required": ["uid", "uniqueCode"]
+    },
+    "message": {
+      "title": "Message",
+      "description": "Encrypted chat message between users.",
+      "type": "object",
+      "properties": {
+        "senderId": { "type": "string", "description": "Sender UID" },
+        "receiverId": { "type": "string", "description": "Receiver UID" },
+        "chatId": { "type": "string", "description": "Sorted pair of UIDs" },
+        "encryptedContent": { "type": "string", "description": "AES-encrypted content (B64)" },
+        "encryptedKeyForSender": { "type": "string", "description": "RSA-encrypted AES key for sender" },
+        "encryptedKeyForReceiver": { "type": "string", "description": "RSA-encrypted AES key for receiver" },
+        "iv": { "type": "string", "description": "Initialization vector (B64)" },
+        "timestamp": { "type": "string", "format": "date-time", "description": "Server timestamp" },
+        "clientTimestamp": { "type": "number", "description": "Client-side timestamp" }
+      },
+      "required": ["senderId", "receiverId", "chatId", "encryptedContent", "encryptedKeyForSender", "encryptedKeyForReceiver", "iv", "timestamp", "clientTimestamp"]
+    },
+    "privateKey": {
+      "title": "Private Key",
+      "description": "User's RSA private key stored securely for multi-device sync.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "Firebase Auth UID" },
+        "key": { "type": "object", "description": "JWK formatted private key" }
+      },
+      "required": ["uid", "key"]
+    }
+  },
+  "firestore": {
+    "/users/{uid}": {
+      "schema": { "$ref": "user" },
+      "description": "User profiles"
+    },
+    "/privateKeys/{uid}": {
+      "schema": { "$ref": "privateKey" },
+      "description": "User private keys"
+    },
+    "/chats/{chatId}/messages/{messageId}": {
+      "schema": { "$ref": "message" },
+      "description": "Chat messages in a subcollection"
+    }
+  }
+}

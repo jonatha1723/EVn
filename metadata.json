@@ -1,0 +1,5 @@
+{
+  "name": "Meu ID",
+  "description": "A secure chat application where users connect using unique 15-digit codes.",
+  "requestFramePermissions": []
+}
