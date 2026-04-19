@@ -1,6 +1,6 @@
 {
   "hosting": {
-    "site": "chat-seguro-eve",
+    "site": "eve-jn",
     "public": "dist",
     "ignore": [
       "firebase.json",
