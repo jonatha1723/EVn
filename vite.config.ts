@@ -13,7 +13,7 @@ export default defineConfig(({mode}) => {
       VitePWA({
         registerType: 'autoUpdate',
         manifest: {
-          name: 'Meu ID - Chat Seguro',
+          name: 'Meu ID 💗 - Chat Seguro',
           short_name: 'Meu ID',
           description: 'Chat criptografado de ponta a ponta',
           theme_color: '#09090b',
