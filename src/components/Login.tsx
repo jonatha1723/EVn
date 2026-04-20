@@ -35,7 +35,7 @@ export const Login: React.FC<LoginProps> = (props) => {
           <p className="text-zinc-500 text-sm">
             {props.isRegistering 
               ? 'Preencha os dados para começar.' 
-              : 'Bem-vindo de volta!'}
+              : 'Bem vindo!'}
           </p>
         </div>
 
