@@ -45,7 +45,7 @@ try {
 }
 
 # ---- ETAPA 2: Login no Firebase ----
-Write-Step "2/5" "Verificando login no Firebase..."
+Write-Step "2/6" "Verificando login no Firebase..."
 
 $loginCheck = npx firebase-tools login:list 2>&1
 if ($loginCheck -match "No authorized accounts") {
@@ -57,8 +57,14 @@ if ($loginCheck -match "No authorized accounts") {
     Write-Ok "Ja logado no Firebase."
 }
 
-# ---- ETAPA 3: Instalar dependencias (se necessario) ----
-Write-Step "3/5" "Verificando dependencias..."
+# ---- ETAPA 3: Buscar atualizacoes do GitHub ----
+Write-Step "3/6" "Buscando atualizacoes do GitHub..."
+git pull origin main
+if ($LASTEXITCODE -ne 0) { Write-Fail "git pull falhou. Verifique sua conexao com o GitHub." }
+Write-Ok "Repositorio atualizado com as ultimas alteracoes."
+
+# ---- ETAPA 4: Instalar dependencias (se necessario) ----
+Write-Step "4/6" "Verificando dependencias..."
 if (-not (Test-Path "node_modules")) {
     Write-Warn "Pasta node_modules nao encontrada. Instalando..."
     npm install
@@ -69,13 +75,13 @@ if (-not (Test-Path "node_modules")) {
 }
 
 # ---- ETAPA 4: Build ----
-Write-Step "4/5" "Gerando build de producao..."
+Write-Step "5/6" "Gerando build de producao..."
 npm run build
 if ($LASTEXITCODE -ne 0) { Write-Fail "Build falhou. Verifique os erros acima." }
 Write-Ok "Build concluido com sucesso."
 
 # ---- ETAPA 5: Deploy Firebase ----
-Write-Step "5/5" "Publicando no Firebase..."
+Write-Step "6/6" "Publicando no Firebase..."
 npx firebase-tools deploy --only hosting
 if ($LASTEXITCODE -ne 0) { Write-Fail "Deploy falhou." }
 Write-Ok "Site publicado: https://eve-jn.web.app"
