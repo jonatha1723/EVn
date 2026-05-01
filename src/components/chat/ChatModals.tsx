@@ -1,7 +1,8 @@
 import React from 'react';
 import { Trash2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { DecryptedMessage, MessagePosition } from '../../types';
+import { safeToDate } from '../../lib/dateUtils';
+import { DecryptedMessage, MessagePosition, UserData } from '../../types';
 import { MessageMenu } from './MessageMenu';
 
 interface ChatModalsProps {
@@ -32,7 +33,7 @@ export const ChatModals: React.FC<ChatModalsProps> = ({
   isOwnMessage
 }) => {
   const formatTime = (msg: DecryptedMessage) => {
-    const date = msg.timestamp ? msg.timestamp.toDate() : new Date(msg.clientTimestamp);
+    const date = safeToDate(msg.timestamp || msg.clientTimestamp);
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 

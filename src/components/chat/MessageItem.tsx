@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { User } from 'firebase/auth';
 import { Check, Loader2, Languages } from 'lucide-react';
+import { safeToDate } from '../../lib/dateUtils';
 import { motion, AnimatePresence } from 'motion/react';
 import { DecryptedMessage, UserData, MessagePosition } from '../../types';
 import { MessageFile } from './MessageFile';
@@ -112,7 +113,7 @@ export const MessageItem: React.FC<MessageItemProps> = ({
         
         <div className={`flex items-center justify-end gap-1.5 mt-2 ${isMe ? 'text-emerald-200/70' : 'text-zinc-500'}`}>
           <p className="text-[9px] font-bold tracking-tighter">
-            {new Date(msg.timestamp ? msg.timestamp.toDate() : msg.clientTimestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            {new Date(safeToDate(msg.timestamp)).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
           </p>
           {isMe && (
             msg.isPending ? (
