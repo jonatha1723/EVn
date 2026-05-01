@@ -30,22 +30,32 @@ export const MessageList: React.FC<MessageListProps> = ({
   selectedMessageId,
   privateKey
 }) => {
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const mountTime = useRef(Date.now());
+  const isInitialLoad = useRef(true);
 
   useEffect(() => {
-    // Se o componente acabou de ser montado (menos de 2 segundos),
-    // qualquer atualização de mensagens fará um salto instantâneo.
-    const timeSinceMount = Date.now() - mountTime.current;
+    if (messages.length === 0) return;
+
+    const container = scrollContainerRef.current;
+    if (!container) return;
+
+    // Verificar se o usuário está perto do final (dentro de 200px)
+    const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 200;
     
-    if (messages.length > 0) {
-      if (timeSinceMount < 2000) {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'auto' });
-      } else {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-      }
+    // Verificar se a última mensagem foi enviada por mim
+    const lastMsg = messages[messages.length - 1];
+    const isLastFromMe = lastMsg?.senderId === user.uid;
+
+    if (isInitialLoad.current) {
+      // Salto instantâneo no carregamento inicial
+      messagesEndRef.current?.scrollIntoView({ behavior: 'auto' });
+      isInitialLoad.current = false;
+    } else if (isNearBottom || isLastFromMe) {
+      // Rolagem suave apenas se estiver no final ou se eu mandei mensagem
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }
-  }, [messages]);
+  }, [messages, user.uid]);
 
   if (messages.length === 0) {
     return (
@@ -64,7 +74,10 @@ export const MessageList: React.FC<MessageListProps> = ({
   }
 
   return (
-    <div className="flex-1 min-w-0 overflow-y-auto p-4 md:p-8 flex flex-col gap-4 scroll-smooth">
+    <div 
+      ref={scrollContainerRef}
+      className="flex-1 min-w-0 overflow-y-auto p-4 md:p-8 flex flex-col gap-4"
+    >
       {messages.length >= messageLimit && (
         <div className="flex justify-center mb-6">
           <button 
