@@ -4,14 +4,15 @@ import { doc, onSnapshot, collection, query, where, addDoc, serverTimestamp, arr
 import { db, backupDb, handleFirestoreError, OperationType, storage } from '../firebase';
 import { encryptMessage, decryptMessage, encryptData } from '../crypto';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { UserData, Message, DecryptedMessage } from '../types';
+import { UserData, Message, DecryptedMessage, LocalDeletedMessage, MessagePosition } from '../types';
 import { useKeys } from './useKeys';
 import { useSocket } from './useSocket';
 import { compressImage } from '../lib/imageUtils';
-import { safeToDate } from '../lib/dateUtils';
+import { safeToDate, APP_VERSION } from '../lib/dateUtils';
 import { localDb } from '../lib/localDb';
 
 export const useChat = (user: User | null) => {
+  console.log(`[EVN] Inicializando Core v${APP_VERSION}`);
   const [userData, setUserData] = useState<UserData | null>(null);
   const [contacts, setContacts] = useState<UserData[]>([]);
   const [activeContact, setActiveContact] = useState<UserData | null>(null);

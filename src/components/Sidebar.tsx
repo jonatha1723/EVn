@@ -2,6 +2,7 @@ import React from 'react';
 import { Trash2, AlertTriangle, Loader2 } from 'lucide-react';
 import { UserData } from '../types';
 import { SidebarHeader } from './sidebar/SidebarHeader';
+import { APP_VERSION } from '../lib/dateUtils';
 import { UserCodeCard } from './sidebar/UserCodeCard';
 import { AddContactForm } from './sidebar/AddContactForm';
 import { ContactList } from './sidebar/ContactList';
@@ -64,6 +65,25 @@ export const Sidebar: React.FC<SidebarProps> = ({
           activeContact={activeContact}
           setActiveContact={setActiveContact}
         />
+      </div>
+
+      {/* Version and Repair */}
+      <div className="p-4 border-t border-zinc-900 bg-zinc-950/50 flex flex-col gap-2">
+        <button
+          onClick={() => {
+            if (confirm('Isso vai limpar o cache local e recarregar o app. Suas chaves de segurança serão restauradas do servidor. Continuar?')) {
+              localStorage.clear();
+              indexedDB.deleteDatabase('ChatLocalDB');
+              window.location.reload();
+            }
+          }}
+          className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-zinc-500 transition-all border border-zinc-800 text-[10px] font-bold uppercase tracking-widest"
+        >
+          Reparar Aplicativo
+        </button>
+        <p className="text-[9px] text-zinc-700 text-center font-mono">
+          EVN-CORE v{APP_VERSION} • {new Date().toLocaleDateString()}
+        </p>
       </div>
 
       {/* Danger Zone - Only for Admin */}
