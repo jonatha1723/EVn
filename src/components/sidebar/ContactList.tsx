@@ -15,7 +15,7 @@ export const ContactList: React.FC<ContactListProps> = ({
   setActiveContact
 }) => {
   return (
-    <div className="flex-1 overflow-y-auto px-3 py-4">
+    <div className="flex-1 overflow-y-auto px-3 py-4 custom-scrollbar">
       <h2 className="text-[11px] text-zinc-500 uppercase tracking-[0.2em] font-bold mb-4 px-4">Conversas</h2>
       <div className="space-y-1">
         {contacts.length === 0 ? (
@@ -66,8 +66,8 @@ export const ContactList: React.FC<ContactListProps> = ({
                       isActive ? 'text-emerald-500' : 'text-zinc-700 group-hover:text-zinc-500'
                     }`} />
                   </div>
-                  <p className="text-[10px] text-zinc-500 font-mono truncate mt-0.5 tracking-wider">
-                    {contact.uniqueCode}
+                  <p className="text-[10px] text-zinc-600 font-bold uppercase truncate mt-0.5 tracking-widest">
+                    Conversa Criptografada
                   </p>
                 </div>
               </motion.button>

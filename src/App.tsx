@@ -207,38 +207,40 @@ export default function App() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.2 }}
-          className="flex h-[100dvh] bg-zinc-950 text-zinc-100 font-sans overflow-hidden selection:bg-emerald-500/30 w-full"
+          className="flex h-[100dvh] bg-[var(--bg-app)] text-zinc-100 font-sans overflow-hidden selection:bg-emerald-500/30 w-full md:p-4 lg:p-6 transition-colors duration-300"
         >
-          <Sidebar 
-            userData={userData}
-            contacts={contacts}
-            activeContact={activeContact}
-            setActiveContact={setActiveContact}
-            onLogout={logout}
-            onAddContact={addContact}
-            onFactoryReset={factoryReset}
-            hasKeys={hasKeys}
-            settings={settings}
-            onUpdateSettings={updateSettings}
-          />
-          
-          <ChatWindow 
-            user={user}
-            activeContact={activeContact}
-            setActiveContact={setActiveContact}
-            messages={messages}
-            onSendMessage={sendMessage}
-            onSendFile={sendFile}
-            onDeleteMessage={deleteMessage}
-            onClearChat={() => clearChatLocally(messages.map(m => m.id))}
-            localDeletedMessages={localDeletedMessages}
-            messageLimit={messageLimit}
-            setMessageLimit={setMessageLimit}
-            isContactTyping={isContactTyping}
-            setTypingStatus={setTypingStatus}
-            privateKey={privateKey}
-            settings={settings}
-          />
+          <div className="flex flex-1 h-full w-full max-w-[1800px] mx-auto overflow-hidden bg-[var(--bg-app)] md:rounded-[2.5rem] md:border border-[var(--border-color)] md:shadow-2xl">
+            <Sidebar 
+              userData={userData}
+              contacts={contacts}
+              activeContact={activeContact}
+              setActiveContact={setActiveContact}
+              onLogout={logout}
+              onAddContact={addContact}
+              onFactoryReset={factoryReset}
+              hasKeys={hasKeys}
+              settings={settings}
+              onUpdateSettings={updateSettings}
+            />
+            
+            <ChatWindow 
+              user={user}
+              activeContact={activeContact}
+              setActiveContact={setActiveContact}
+              messages={messages}
+              onSendMessage={sendMessage}
+              onSendFile={sendFile}
+              onDeleteMessage={deleteMessage}
+              onClearChat={() => clearChatLocally(messages.map(m => m.id))}
+              localDeletedMessages={localDeletedMessages}
+              messageLimit={messageLimit}
+              setMessageLimit={setMessageLimit}
+              isContactTyping={isContactTyping}
+              setTypingStatus={setTypingStatus}
+              privateKey={privateKey}
+              settings={settings}
+            />
+          </div>
 
           {/* Modal de Convite */}
           {pendingInvite && (
