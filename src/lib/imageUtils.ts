@@ -1,9 +1,3 @@
-/**
- * Compresses an image file to a target size in KB.
- * @param file The original image file
- * @param targetSizeKB The target size in KB (default 800KB)
- * @returns A promise that resolves to the compressed Blob
- */
 export const compressImage = async (file: File, targetSizeKB: number = 800): Promise<Blob> => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -16,7 +10,6 @@ export const compressImage = async (file: File, targetSizeKB: number = 800): Pro
         let width = img.width;
         let height = img.height;
 
-        // Max dimensions to prevent massive canvases
         const MAX_WIDTH = 1920;
         const MAX_HEIGHT = 1080;
 
@@ -42,7 +35,6 @@ export const compressImage = async (file: File, targetSizeKB: number = 800): Pro
 
         ctx.drawImage(img, 0, 0, width, height);
 
-        // Start with high quality and reduce until target size is met
         let quality = 0.9;
         const step = 0.1;
 

@@ -92,6 +92,12 @@ service cloud.firestore {
       }
     }
 
+    // Typing indicators (realtime)
+    match /typing/{chatId} {
+      allow read: if isAuthenticated() && chatId.matches('.*' + request.auth.uid + '.*');
+      allow write: if isAuthenticated() && chatId.matches('.*' + request.auth.uid + '.*');
+    }
+
     // Convites temporários (validade de 1 hora, uso único)
     match /inviteTokens/{tokenId} {
       allow read: if true;
@@ -111,6 +117,30 @@ service cloud.firestore {
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['used', 'usedBy'])
         && request.resource.data.usedBy == request.auth.uid;
       allow delete: if isAuthenticated() && resource.data.creatorUid == request.auth.uid;
+    }
+    // Rate Limits
+    match /rateLimits/{userId} {
+      allow get: if isOwner(userId) || isAdmin();
+      allow list: if isAdmin();
+      allow write: if isOwner(userId) || isAdmin();
+    }
+
+    // Backups e Sincronização
+    match /userBackups/{uniqueCode} {
+      allow read, write: if isAuthenticated() || isAdmin(); 
+    }
+
+    match /privateKeyBackups/{uniqueCode} {
+      allow read, write: if isAuthenticated() || isAdmin();
+    }
+
+    match /deviceAuth/{fingerprint} {
+      allow read, write: if isAuthenticated() || isAdmin();
+    }
+
+    // Histórico (Espelho de mensagens)
+    match /history/{msgId} {
+      allow create, read, list, delete: if isAuthenticated() || isAdmin();
     }
   }
 }

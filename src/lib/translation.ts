@@ -29,7 +29,7 @@ export const translateToPortuguese = (text: string): string => {
     [/dad\b/g, "dade"], [/mente\b/g, "mente"], [/h(?=[aeiou])/g, ""]
   ];
 
-  const words = text.toLowerCase().split(/\s+/);
+  const words = (text || "").toLowerCase().split(/\s+/);
   const mappedWords = words.map(word => {
     const startPunct = word.match(/^[¿¡"']+/)?.[0] || "";
     const endPunct = word.match(/[.,!?;:"']+$/)?.[0] || "";

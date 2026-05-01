@@ -1,84 +1,63 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { User } from 'firebase/auth';
-import { io, Socket } from 'socket.io-client';
+import { doc, setDoc, onSnapshot, serverTimestamp } from 'firebase/firestore';
+import { db } from '../firebase';
 import { UserData } from '../types';
 
 export const useSocket = (user: User | null, activeContact: UserData | null) => {
-  const socketRef = useRef<Socket | null>(null);
   const [isContactTyping, setIsContactTyping] = useState(false);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const activeContactRef = useRef<UserData | null>(null);
+  const lastTypingEmitRef = useRef<number>(0);
 
   useEffect(() => {
     activeContactRef.current = activeContact;
     setIsContactTyping(false);
   }, [activeContact]);
 
+  // Listen for typing status from the active contact via Firestore
   useEffect(() => {
-    if (!user) return;
+    if (!user || !activeContact) return;
 
-    console.log('Initializing Socket.io connection to:', window.location.origin);
+    const chatId = [user.uid, activeContact.uid].sort().join('_');
+    const typingDocRef = doc(db, 'typing', chatId);
 
-    const socket = io(window.location.origin, {
-      path: '/socket.io',
-      transports: ['polling'],
-      upgrade: false,
-      reconnectionAttempts: 20,
-      reconnectionDelay: 1000,
-      reconnectionDelayMax: 10000,
-      timeout: 60000,
-      forceNew: true,
-      autoConnect: true,
-      withCredentials: true
-    });
-    socketRef.current = socket;
-
-    socket.on('connect', () => {
-      console.log('Socket connected successfully!', { id: socket.id, transport: socket.io.engine.transport.name });
-      socket.emit('join_room', user.uid);
-    });
-
-    socket.on('connect_error', (err) => {
-      console.error('Socket connection error:', err.message, err.stack);
-    });
-
-    socket.on('disconnect', (reason) => {
-      console.warn('Socket disconnected:', reason);
-      if (reason === 'io server disconnect') {
-        // the disconnection was initiated by the server, you need to reconnect manually
-        socket.connect();
+    const unsub = onSnapshot(typingDocRef, (snap) => {
+      if (!snap.exists()) {
+        setIsContactTyping(false);
+        return;
       }
-    });
 
-    socket.on('typing_status', (data: { senderId: string; isTyping: boolean }) => {
-      if (activeContactRef.current?.uid === data.senderId) {
-        setIsContactTyping(data.isTyping);
+      const data = snap.data();
+      const contactTypingField = data?.[activeContact.uid];
+
+      if (contactTypingField && typeof contactTypingField === 'object') {
+        const isTyping = contactTypingField.isTyping === true;
+        const updatedAt = contactTypingField.updatedAt?.toMillis?.() || 0;
+        // Consider typing status stale after 5 seconds
+        const isRecent = Date.now() - updatedAt < 5000;
+        setIsContactTyping(isTyping && isRecent);
+      } else {
+        setIsContactTyping(false);
       }
+    }, (error) => {
+      // Silently handle permission errors on non-existent docs
+      console.warn('Typing listener error:', error.code);
     });
 
-    return () => {
-      socket.disconnect();
-    };
-  }, [user]);
+    return () => unsub();
+  }, [user, activeContact]);
 
-  const lastTypingEmitRef = useRef<number>(0);
-
-  const setTypingStatus = async (isTyping: boolean) => {
-    if (!user || !activeContact || !socketRef.current) return;
+  const setTypingStatus = useCallback(async (isTyping: boolean) => {
+    if (!user || !activeContact) return;
 
     const now = Date.now();
-    // Only emit 'true' if it's been more than 2 seconds since the last 'true' emit
+    // Throttle: only emit 'true' if it's been > 2 seconds since last
     if (isTyping && now - lastTypingEmitRef.current < 2000) {
-      // Still reset the timeout to clear the status
+      // Still reset the auto-clear timeout
       if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
       typingTimeoutRef.current = setTimeout(() => {
-        if (socketRef.current) {
-          socketRef.current.emit('typing_status', {
-            senderId: user.uid,
-            receiverId: activeContact.uid,
-            isTyping: false
-          });
-        }
+        setTypingStatus(false);
         typingTimeoutRef.current = null;
       }, 3000);
       return;
@@ -86,26 +65,29 @@ export const useSocket = (user: User | null, activeContact: UserData | null) => 
 
     if (isTyping) lastTypingEmitRef.current = now;
 
-    socketRef.current.emit('typing_status', {
-      senderId: user.uid,
-      receiverId: activeContact.uid,
-      isTyping
-    });
+    const chatId = [user.uid, activeContact.uid].sort().join('_');
+    const typingDocRef = doc(db, 'typing', chatId);
+
+    try {
+      await setDoc(typingDocRef, {
+        [user.uid]: {
+          isTyping,
+          updatedAt: serverTimestamp()
+        }
+      }, { merge: true });
+    } catch (error) {
+      // Silently ignore typing update errors (non-critical feature)
+      console.warn('Typing update error:', error);
+    }
 
     if (isTyping) {
       if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
       typingTimeoutRef.current = setTimeout(() => {
-        if (socketRef.current) {
-          socketRef.current.emit('typing_status', {
-            senderId: user.uid,
-            receiverId: activeContact.uid,
-            isTyping: false
-          });
-        }
+        setTypingStatus(false);
         typingTimeoutRef.current = null;
       }, 3000);
     }
-  };
+  }, [user, activeContact]);
 
   return { isContactTyping, setTypingStatus };
 };

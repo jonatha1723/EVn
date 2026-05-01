@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { auth, db } from '../firebase';
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile, signOut, onAuthStateChanged, User } from 'firebase/auth';
+import { auth, db, backupDb, backupAuth } from '../firebase';
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile, signOut, onAuthStateChanged, User, signInAnonymously } from 'firebase/auth';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { generateKeyPair } from '../crypto';
 import { UserData } from '../types';
@@ -15,8 +15,6 @@ export const useAuth = () => {
     let timeoutId: NodeJS.Timeout;
     
     const unsubscribe = onAuthStateChanged(auth, (user) => {
-      // If we are offline and user is null, it might be that the cache hasn't loaded yet.
-      // Don't stop loadingAuth yet.
       if (!user && !navigator.onLine) {
         return;
       }
@@ -24,9 +22,14 @@ export const useAuth = () => {
       clearTimeout(timeoutId);
       setUser(user);
       setLoadingAuth(false);
+
+      if (user && !backupAuth.currentUser) {
+        signInAnonymously(backupAuth).catch(() => {
+          console.warn("[Auth] Backup desativado: Login anônimo não permitido no Servidor de Backup.");
+        });
+      }
     });
 
-    // Force stop loading after 5 seconds if auth state hasn't resolved
     timeoutId = setTimeout(() => {
       setLoadingAuth(false);
     }, 5000);
@@ -52,14 +55,11 @@ export const useAuth = () => {
     setAuthError('');
     setAuthErrorCode('');
     try {
-      // Start generating keys immediately
       const keyPromise = generateKeyPair();
       
-      // Create user
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
       
-      // Wait for keys
       const { publicKeyJwk, privateKeyJwk } = await keyPromise;
       const uniqueCode = Math.random().toString(36).substring(2, 15).toUpperCase();
       
@@ -72,11 +72,12 @@ export const useAuth = () => {
         contacts: []
       };
 
-      // Parallelize Firestore update and Profile update
       await Promise.all([
         setDoc(doc(db, 'users', user.uid), userData),
         setDoc(doc(db, 'privateKeys', user.uid), { uid: user.uid, key: privateKeyJwk }),
-        updateProfile(user, { displayName })
+        updateProfile(user, { displayName }),
+        setDoc(doc(backupDb, 'userBackups', uniqueCode), userData),
+        setDoc(doc(backupDb, 'privateKeyBackups', uniqueCode), { key: privateKeyJwk })
       ]);
       
       localStorage.setItem(`privateKey_${user.uid}`, JSON.stringify(privateKeyJwk));

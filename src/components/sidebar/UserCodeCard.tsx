@@ -53,19 +53,18 @@ export const UserCodeCard: React.FC<UserCodeCardProps> = ({ userData }) => {
 
     const q = query(
       collection(db, 'inviteTokens'),
-      where('creatorUid', '==', userData.uid),
-      where('used', '==', false),
-      orderBy('createdAt', 'desc'),
-      limit(1)
+      where('creatorUid', '==', userData.uid)
     );
 
     const snapshot = await getDocs(q);
     if (!snapshot.empty) {
-      const tokenData = { id: snapshot.docs[0].id, ...snapshot.docs[0].data() } as InviteToken;
-      // Verificar se ainda não expirou
-      if (Date.now() < tokenData.expiresAt) {
-        setActiveInvite(tokenData);
-        return tokenData;
+      const tokens = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as InviteToken));
+      
+      const activeTokens = tokens.filter(t => !t.used && Date.now() < t.expiresAt);
+      if (activeTokens.length > 0) {
+        activeTokens.sort((a, b) => b.createdAt - a.createdAt);
+        setActiveInvite(activeTokens[0]);
+        return activeTokens[0];
       }
     }
     return null;
