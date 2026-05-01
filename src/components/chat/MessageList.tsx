@@ -31,9 +31,15 @@ export const MessageList: React.FC<MessageListProps> = ({
   privateKey
 }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const isInitialMount = useRef(true);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (isInitialMount.current && messages.length > 0) {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'auto' });
+      isInitialMount.current = false;
+    } else if (!isInitialMount.current) {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
   }, [messages]);
 
   if (messages.length === 0) {
