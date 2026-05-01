@@ -68,24 +68,29 @@ export const ContactList: React.FC<ContactListProps> = ({
                     }`} />
                   </div>
                   {(() => {
-                    if (!contact.lastActive) {
-                      return <p className="text-[10px] text-zinc-600 font-bold uppercase truncate mt-0.5 tracking-widest">OFF</p>;
-                    }
-                    const lastSeen = safeToDate(contact.lastActive).getTime();
-                    const isOnline = Date.now() - lastSeen < 120000; // 2 minutos
+                    const lastSeen = contact.lastActive ? safeToDate(contact.lastActive).getTime() : 0;
+                    const isOnline = contact.lastActive && (Date.now() - lastSeen < 120000);
 
                     if (isOnline) {
-                      return <p className="text-[10px] text-emerald-500 font-bold uppercase truncate mt-0.5 tracking-widest">ON</p>;
+                      return (
+                        <div className="flex items-center gap-1.5 mt-0.5">
+                          <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)] animate-pulse" />
+                          <p className="text-[10px] text-emerald-500 font-bold uppercase tracking-widest">ON</p>
+                        </div>
+                      );
                     }
 
-                    const timeStr = safeToDate(contact.lastActive).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                    const dateStr = safeToDate(contact.lastActive).toLocaleDateString([], { day: '2-digit', month: '2-digit' });
-                    const isToday = new Date().toDateString() === safeToDate(contact.lastActive).toDateString();
+                    const timeStr = lastSeen ? safeToDate(contact.lastActive).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
+                    const dateStr = lastSeen ? safeToDate(contact.lastActive).toLocaleDateString([], { day: '2-digit', month: '2-digit' }) : '';
+                    const isToday = lastSeen && new Date().toDateString() === safeToDate(contact.lastActive).toDateString();
 
                     return (
-                      <p className="text-[10px] text-zinc-600 font-bold uppercase truncate mt-0.5 tracking-widest">
-                        OFF • {isToday ? timeStr : dateStr}
-                      </p>
+                      <div className="flex items-center gap-1.5 mt-0.5">
+                        <div className="w-1.5 h-1.5 rounded-full bg-zinc-600" />
+                        <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">
+                          OFF {lastSeen ? `• ${isToday ? timeStr : dateStr}` : ''}
+                        </p>
+                      </div>
                     );
                   })()}
                 </div>
