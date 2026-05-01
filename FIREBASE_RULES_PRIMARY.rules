@@ -1,0 +1,59 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() &&
+        (
+          request.auth.token.email == "jogonesteterp@gmail.com" ||
+          (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('role', 'user') == 'admin')
+        );
+    }
+
+    // Regras para usuários e chaves privadas
+    match /users/{userId} {
+      allow get, list: if isAuthenticated();
+      allow create, update: if isOwner(userId) || isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    match /privateKeys/{userId} {
+      allow read: if isOwner(userId);
+      allow write: if isOwner(userId) || isAdmin();
+    }
+
+    // Regras para chats e mensagens em tempo real
+    match /chats/{chatId} {
+      allow read: if isAuthenticated() && chatId.matches('.*' + request.auth.uid + '.*');
+      allow write: if isAuthenticated() && chatId.matches('.*' + request.auth.uid + '.*');
+      
+      match /messages/{messageId} {
+        allow read, write: if isAuthenticated() && chatId.matches('.*' + request.auth.uid + '.*');
+      }
+    }
+
+    // Typing indicators
+    match /typing/{chatId} {
+      allow read, write: if isAuthenticated() && chatId.matches('.*' + request.auth.uid + '.*');
+    }
+
+    // Convites
+    match /inviteTokens/{tokenId} {
+      allow read: if true;
+      allow write: if isAuthenticated();
+    }
+
+    // Limites de taxa
+    match /rateLimits/{userId} {
+      allow read, write: if isOwner(userId) || isAdmin();
+    }
+  }
+}

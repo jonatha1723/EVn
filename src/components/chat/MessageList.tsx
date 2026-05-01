@@ -33,16 +33,24 @@ export const MessageList: React.FC<MessageListProps> = ({
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const isInitialLoad = useRef(true);
+  const lastMessageCount = useRef(messages.length);
 
   useEffect(() => {
-    if (messages.length === 0) return;
+    if (messages.length === 0) {
+      lastMessageCount.current = 0;
+      return;
+    }
 
     const container = scrollContainerRef.current;
     if (!container) return;
 
-    // Verificar se o usuário está perto do final (dentro de 200px)
-    const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 200;
+    // Verificar se o usuário está perto do final (dentro de 100px)
+    const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 100;
     
+    // Verificar se uma nova mensagem foi adicionada (e não apenas um carregamento inicial)
+    const isNewMessage = messages.length > lastMessageCount.current;
+    lastMessageCount.current = messages.length;
+
     // Verificar se a última mensagem foi enviada por mim
     const lastMsg = messages[messages.length - 1];
     const isLastFromMe = lastMsg?.senderId === user.uid;
@@ -51,8 +59,8 @@ export const MessageList: React.FC<MessageListProps> = ({
       // Salto instantâneo no carregamento inicial
       messagesEndRef.current?.scrollIntoView({ behavior: 'auto' });
       isInitialLoad.current = false;
-    } else if (isNearBottom || isLastFromMe) {
-      // Rolagem suave apenas se estiver no final ou se eu mandei mensagem
+    } else if (isNewMessage && (isNearBottom || isLastFromMe)) {
+      // Rolagem suave apenas se uma NOVA mensagem chegou e o usuário já estava no final ou ele mesmo mandou
       messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }
   }, [messages, user.uid]);

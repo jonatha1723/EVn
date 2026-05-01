@@ -1,0 +1,31 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // O projeto de backup aceita logins anônimos para sincronização em background
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Histórico de mensagens (Backup imutável)
+    match /history/{msgId} {
+      allow create, read, list: if isAuthenticated();
+      allow delete: if request.auth.token.email == "jogonesteterp@gmail.com";
+    }
+
+    // Backups de perfis de usuário
+    match /userBackups/{uniqueCode} {
+      allow read, write: if isAuthenticated();
+    }
+
+    // Backups de chaves privadas (Criptografadas)
+    match /privateKeyBackups/{uniqueCode} {
+      allow read, write: if isAuthenticated();
+    }
+
+    // Controle de abusos no servidor de backup
+    match /rateLimits/{userId} {
+      allow get, write: if isAuthenticated() && request.auth.uid == userId;
+    }
+  }
+}
