@@ -8,6 +8,8 @@ export interface UserData {
   uniqueCode: string;
   publicKey: JsonWebKey;
   contacts?: string[];
+  role?: 'admin' | 'user';
+  lastActive?: any;
 }
 
 export interface Message {

@@ -1,6 +1,7 @@
 import React from 'react';
 import { ArrowLeft, Trash2 } from 'lucide-react';
 import { UserData } from '../../types';
+import { safeToDate } from '../../lib/dateUtils';
 
 interface ChatHeaderProps {
   activeContact: UserData;
@@ -17,8 +18,24 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
   hasMessages,
   isTyping
 }) => {
+  const presenceStatus = (() => {
+    if (isTyping) return <p className="text-[10px] text-emerald-400 font-bold tracking-wider animate-pulse">Digitando...</p>;
+    
+    if (!activeContact.lastActive) return <p className="text-[10px] text-zinc-500 font-bold tracking-widest uppercase mt-0.5">OFF</p>;
+    
+    const lastSeen = safeToDate(activeContact.lastActive).getTime();
+    const isOnline = Date.now() - lastSeen < 120000;
+
+    if (isOnline) return <p className="text-[10px] text-emerald-400 font-bold tracking-widest uppercase mt-0.5">ON</p>;
+
+    const timeStr = safeToDate(activeContact.lastActive).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const isToday = new Date().toDateString() === safeToDate(activeContact.lastActive).toDateString();
+    
+    return <p className="text-[10px] text-zinc-500 font-bold tracking-widest uppercase mt-0.5">OFF • {isToday ? timeStr : safeToDate(activeContact.lastActive).toLocaleDateString([], { day: '2-digit', month: '2-digit' })}</p>;
+  })();
+
   return (
-    <div className="h-20 border-b border-zinc-900 flex items-center px-4 md:px-8 bg-zinc-950/80 backdrop-blur-xl z-10 sticky top-0">
+    <div className="h-20 border-b border-[var(--border-color)] flex items-center px-4 md:px-8 bg-[var(--bg-chat)] backdrop-blur-xl z-10 sticky top-0 transition-colors duration-300">
       <div className="flex items-center gap-4 w-full">
         <button 
           onClick={onBack}
@@ -31,11 +48,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
         </div>
         <div className="flex-1 overflow-hidden">
           <h2 className="font-bold text-lg truncate text-white tracking-tight">{activeContact.displayName}</h2>
-          {isTyping ? (
-            <p className="text-[10px] text-emerald-400 font-bold tracking-wider animate-pulse">Digitando...</p>
-          ) : (
-            <p className="text-[10px] text-zinc-500 font-bold tracking-widest uppercase mt-0.5">Online</p>
-          )}
+          {presenceStatus}
         </div>
         {hasMessages && (
           <button

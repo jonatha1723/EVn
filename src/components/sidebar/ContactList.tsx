@@ -2,6 +2,7 @@ import React from 'react';
 import { User as UserIcon, MessageSquare } from 'lucide-react';
 import { motion } from 'motion/react';
 import { UserData } from '../../types';
+import { safeToDate } from '../../lib/dateUtils';
 
 interface ContactListProps {
   contacts: UserData[];
@@ -66,9 +67,27 @@ export const ContactList: React.FC<ContactListProps> = ({
                       isActive ? 'text-emerald-500' : 'text-zinc-700 group-hover:text-zinc-500'
                     }`} />
                   </div>
-                  <p className="text-[10px] text-zinc-600 font-bold uppercase truncate mt-0.5 tracking-widest">
-                    Conversa Criptografada
-                  </p>
+                  {(() => {
+                    if (!contact.lastActive) {
+                      return <p className="text-[10px] text-zinc-600 font-bold uppercase truncate mt-0.5 tracking-widest">OFF</p>;
+                    }
+                    const lastSeen = safeToDate(contact.lastActive).getTime();
+                    const isOnline = Date.now() - lastSeen < 120000; // 2 minutos
+
+                    if (isOnline) {
+                      return <p className="text-[10px] text-emerald-500 font-bold uppercase truncate mt-0.5 tracking-widest">ON</p>;
+                    }
+
+                    const timeStr = safeToDate(contact.lastActive).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                    const dateStr = safeToDate(contact.lastActive).toLocaleDateString([], { day: '2-digit', month: '2-digit' });
+                    const isToday = new Date().toDateString() === safeToDate(contact.lastActive).toDateString();
+
+                    return (
+                      <p className="text-[10px] text-zinc-600 font-bold uppercase truncate mt-0.5 tracking-widest">
+                        OFF • {isToday ? timeStr : dateStr}
+                      </p>
+                    );
+                  })()}
                 </div>
               </motion.button>
             );

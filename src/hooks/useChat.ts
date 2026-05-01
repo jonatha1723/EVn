@@ -109,7 +109,18 @@ export const useChat = (user: User | null) => {
       console.error("User data snapshot error:", error);
     });
 
-    return () => unsubscribe();
+    // Heartbeat: Atualizar presença a cada 1 minuto
+    const updatePresence = () => {
+      setDoc(doc(db, 'users', user.uid), { lastActive: serverTimestamp() }, { merge: true });
+    };
+    
+    updatePresence();
+    const presenceInterval = setInterval(updatePresence, 60000);
+
+    return () => {
+      unsubscribe();
+      clearInterval(presenceInterval);
+    };
   }, [user]);
 
   useEffect(() => {
@@ -709,7 +720,7 @@ export const useChat = (user: User | null) => {
   return {
     userData,
     contacts,
-    activeContact,
+    activeContact: activeContact ? contacts.find(c => c.uid === activeContact.uid) || activeContact : null,
     setActiveContact,
     messages: allMessages,
     sendMessage,

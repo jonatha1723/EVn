@@ -207,9 +207,9 @@ export default function App() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.2 }}
-          className="flex h-[100dvh] bg-[var(--bg-app)] text-zinc-100 font-sans overflow-hidden selection:bg-emerald-500/30 w-full md:p-4 lg:p-6 transition-colors duration-300"
+          className="flex h-[100dvh] bg-[var(--bg-app)] text-zinc-100 font-sans overflow-hidden selection:bg-emerald-500/30 w-full md:p-2 lg:p-3 transition-colors duration-300"
         >
-          <div className="flex flex-1 h-full w-full max-w-[1800px] mx-auto overflow-hidden bg-[var(--bg-app)] md:rounded-[2.5rem] md:border border-[var(--border-color)] md:shadow-2xl">
+          <div className="flex flex-1 h-full w-full max-w-[1920px] mx-auto overflow-hidden bg-[var(--bg-app)] md:rounded-[2rem] md:border border-[var(--border-color)] md:shadow-2xl">
             <Sidebar 
               userData={userData}
               contacts={contacts}
