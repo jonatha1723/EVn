@@ -9,9 +9,11 @@ import { Sidebar } from './components/Sidebar';
 import { ChatWindow } from './components/ChatWindow';
 import { InviteModal } from './components/sidebar/InviteModal';
 import { InviteToken } from './types';
+import { useSettings } from './hooks/useSettings';
 
 export default function App() {
   const { user, loadingAuth, authError, authErrorCode, login, register, logout } = useAuth();
+  const { settings, updateSettings } = useSettings();
   const { 
     userData, 
     contacts, 
@@ -216,6 +218,8 @@ export default function App() {
             onAddContact={addContact}
             onFactoryReset={factoryReset}
             hasKeys={hasKeys}
+            settings={settings}
+            onUpdateSettings={updateSettings}
           />
           
           <ChatWindow 
@@ -233,6 +237,7 @@ export default function App() {
             isContactTyping={isContactTyping}
             setTypingStatus={setTypingStatus}
             privateKey={privateKey}
+            settings={settings}
           />
 
           {/* Modal de Convite */}

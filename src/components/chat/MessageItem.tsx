@@ -17,6 +17,7 @@ interface MessageItemProps {
   onSelect: (msg: DecryptedMessage, pos: MessagePosition) => void;
   isSelected: boolean;
   privateKey: JsonWebKey | null;
+  settings: any;
 }
 
 export const MessageItem: React.FC<MessageItemProps> = ({
@@ -28,7 +29,8 @@ export const MessageItem: React.FC<MessageItemProps> = ({
   translatedText,
   onSelect,
   isSelected,
-  privateKey
+  privateKey,
+  settings
 }) => {
   const isMe = msg.senderId === user.uid;
   const timerRef = React.useRef<NodeJS.Timeout | null>(null);
@@ -86,7 +88,15 @@ export const MessageItem: React.FC<MessageItemProps> = ({
         <MessageFile msg={msg} privateKey={privateKey} currentUserId={user.uid} />
 
         {msg.text && (
-          <p className="whitespace-pre-wrap break-words break-all text-[15px] leading-relaxed font-medium">{msg.text}</p>
+          <p 
+            className="whitespace-pre-wrap break-words break-all leading-relaxed font-medium transition-all duration-300"
+            style={{ 
+              fontSize: `${settings.fontSize}px`,
+              letterSpacing: `${settings.letterSpacing}px`
+            }}
+          >
+            {msg.text}
+          </p>
         )}
         
         <AnimatePresence>

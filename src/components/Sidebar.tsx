@@ -2,6 +2,7 @@ import React from 'react';
 import { Trash2, AlertTriangle, Loader2 } from 'lucide-react';
 import { UserData } from '../types';
 import { SidebarHeader } from './sidebar/SidebarHeader';
+import { SettingsModal } from './sidebar/SettingsModal';
 import { APP_VERSION } from '../lib/dateUtils';
 import { UserCodeCard } from './sidebar/UserCodeCard';
 import { AddContactForm } from './sidebar/AddContactForm';
@@ -16,6 +17,8 @@ interface SidebarProps {
   onAddContact: (code: string) => Promise<void>;
   onFactoryReset: () => Promise<void>;
   hasKeys: boolean;
+  settings: any;
+  onUpdateSettings: (settings: any) => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -26,10 +29,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onLogout,
   onAddContact,
   onFactoryReset,
-  hasKeys
+  hasKeys,
+  settings,
+  onUpdateSettings
 }) => {
   const [isConfirming, setIsConfirming] = React.useState(false);
   const [isResetting, setIsResetting] = React.useState(false);
+  const [showSettings, setShowSettings] = React.useState(false);
 
   const handleReset = async () => {
     if (!isConfirming) {
@@ -51,9 +57,20 @@ export const Sidebar: React.FC<SidebarProps> = ({
     <div className={`w-full md:w-96 border-r border-zinc-800 flex flex-col bg-zinc-950 ${activeContact ? 'hidden md:flex' : 'flex'}`}>
       {/* App Bar */}
       <div className="p-6 bg-zinc-950 border-b border-zinc-900 sticky top-0 z-10">
-        <SidebarHeader onLogout={onLogout} />
+        <SidebarHeader 
+          onLogout={onLogout} 
+          onOpenSettings={() => setShowSettings(true)}
+        />
         <UserCodeCard userData={userData} />
       </div>
+
+      {/* Modal de Configurações */}
+      <SettingsModal 
+        isOpen={showSettings}
+        onClose={() => setShowSettings(false)}
+        settings={settings}
+        onUpdate={onUpdateSettings}
+      />
 
       {/* Add Contact Section */}
       <AddContactForm onAddContact={onAddContact} />

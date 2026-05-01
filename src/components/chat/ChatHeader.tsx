@@ -34,7 +34,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
           {isTyping ? (
             <p className="text-[10px] text-emerald-400 font-bold tracking-wider animate-pulse">Digitando...</p>
           ) : (
-            <p className="text-[10px] text-zinc-500 font-mono tracking-widest uppercase mt-0.5">{activeContact.uniqueCode}</p>
+            <p className="text-[10px] text-zinc-500 font-bold tracking-widest uppercase mt-0.5">Online</p>
           )}
         </div>
         {hasMessages && (

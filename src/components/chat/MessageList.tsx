@@ -16,6 +16,7 @@ interface MessageListProps {
   translatedMessages: Record<string, string>;
   selectedMessageId: string | null;
   privateKey: JsonWebKey | null;
+  settings: any;
 }
 
 export const MessageList: React.FC<MessageListProps> = ({
@@ -28,7 +29,8 @@ export const MessageList: React.FC<MessageListProps> = ({
   isTranslating,
   translatedMessages,
   selectedMessageId,
-  privateKey
+  privateKey,
+  settings
 }) => {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -84,7 +86,7 @@ export const MessageList: React.FC<MessageListProps> = ({
   return (
     <div 
       ref={scrollContainerRef}
-      className="flex-1 min-w-0 overflow-y-auto p-4 md:p-8 flex flex-col gap-4"
+      className="flex-1 min-w-0 overflow-y-auto p-4 md:p-8 flex flex-col gap-4 custom-scrollbar"
     >
       {messages.length >= messageLimit && (
         <div className="flex justify-center mb-6">
@@ -137,6 +139,7 @@ export const MessageList: React.FC<MessageListProps> = ({
               onSelect={onSelectMessage}
               isSelected={selectedMessageId === msg.id}
               privateKey={privateKey}
+              settings={settings}
             />
           </React.Fragment>
         );

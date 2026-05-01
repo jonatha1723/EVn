@@ -1,15 +1,15 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { User } from 'firebase/auth';
 import { doc, onSnapshot, collection, query, where, addDoc, serverTimestamp, arrayUnion, writeBatch, deleteDoc, limit, getDocs, getDoc, setDoc, orderBy, limitToLast } from 'firebase/firestore';
-import { db, backupDb, handleFirestoreError, OperationType, storage } from '../firebase';
+import { db, backupDb, handleFirestoreError, OperationType } from '../firebase';
 import { encryptMessage, decryptMessage, encryptData } from '../crypto';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { UserData, Message, DecryptedMessage, LocalDeletedMessage, MessagePosition } from '../types';
 import { useKeys } from './useKeys';
 import { useSocket } from './useSocket';
 import { compressImage } from '../lib/imageUtils';
 import { safeToDate, APP_VERSION } from '../lib/dateUtils';
 import { localDb } from '../lib/localDb';
+import { uploadToCloudinary } from '../lib/cloudinary';
 
 export const useChat = (user: User | null) => {
   console.log(`[EVN] Inicializando Core v${APP_VERSION}`);
@@ -404,9 +404,9 @@ export const useChat = (user: User | null) => {
         activeContact.publicKey
       );
 
-      const fileRef = ref(storage, `chat_files/${user.uid}/${clientTimestamp}_${file.name}`);
-      await uploadBytes(fileRef, encrypted.encryptedContent);
-      const fileUrl = await getDownloadURL(fileRef);
+      const encryptedBlob = new Blob([encrypted.encryptedContent], { type: 'application/octet-stream' });
+      const cloudinaryResult = await uploadToCloudinary(new File([encryptedBlob], file.name, { type: 'application/octet-stream' }));
+      const fileUrl = cloudinaryResult.url;
 
       const msgId = doc(collection(db, 'chats', chatId, 'messages')).id;
 

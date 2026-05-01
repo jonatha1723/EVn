@@ -24,6 +24,7 @@ interface ChatWindowProps {
   isContactTyping: boolean;
   setTypingStatus: (isTyping: boolean) => Promise<void>;
   privateKey: JsonWebKey | null;
+  settings: any;
 }
 
 export const ChatWindow: React.FC<ChatWindowProps> = ({
@@ -40,7 +41,8 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
   setMessageLimit,
   isContactTyping,
   setTypingStatus,
-  privateKey
+  privateKey,
+  settings
 }) => {
   const {
     newMessage,
@@ -62,7 +64,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
   const filteredMessages = messages.filter(m => !localDeletedMessages.has(m.id));
 
   return (
-    <div className={`flex-1 min-w-0 flex-col bg-zinc-950 relative ${!activeContact ? 'hidden md:flex' : 'flex'}`}>
+    <div className={`flex-1 min-w-0 flex flex-col bg-[var(--bg-chat)] relative transition-colors duration-300 ${!activeContact ? 'hidden md:flex' : 'flex'}`}>
       <AnimatePresence mode="wait">
         {activeContact ? (
           <motion.div 
@@ -91,6 +93,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
               translatedMessages={translatedMessages}
               selectedMessageId={selectedMessage?.id || null}
               privateKey={privateKey}
+              settings={settings}
             />
 
             <MessageInput 

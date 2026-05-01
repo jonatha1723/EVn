@@ -11,8 +11,43 @@
     -webkit-touch-callout: none;
     -webkit-user-select: none;
     user-select: none;
+    background-color: var(--bg-app);
+    color: var(--text-main);
+    transition: background-color 0.3s ease, color 0.3s ease;
   }
   
+  :root {
+    --bg-app: #09090b;
+    --bg-sidebar: #09090b;
+    --bg-chat: #09090b;
+    --text-main: #f4f4f5;
+    --border-color: #18181b;
+  }
+
+  :root[data-chat-theme="light"] {
+    --bg-app: #f4f4f5;
+    --bg-sidebar: #ffffff;
+    --bg-chat: #f4f4f5;
+    --text-main: #09090b;
+    --border-color: #e4e4e7;
+  }
+
+  :root[data-chat-theme="white"] {
+    --bg-app: #ffffff;
+    --bg-sidebar: #ffffff;
+    --bg-chat: #ffffff;
+    --text-main: #000000;
+    --border-color: #f4f4f5;
+  }
+
+  :root[data-chat-theme="black-spark"] {
+    --bg-app: #000000;
+    --bg-sidebar: #000000;
+    --bg-chat: #000000;
+    --text-main: #ffffff;
+    --border-color: #10b98120;
+  }
+
   /* Allow selection only in input areas */
   input, textarea, [contenteditable="true"] {
     -webkit-user-select: text;
@@ -21,6 +56,20 @@
 }
 
 @layer utilities {
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #27272a;
+    border-radius: 10px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: #3f3f46;
+  }
+
   .pb-safe {
     padding-bottom: env(safe-area-inset-bottom);
   }
