@@ -91,15 +91,8 @@ export const UserCodeCard: React.FC<UserCodeCardProps> = ({ userData }) => {
       if (existing) {
         // Reutilizar o link existente
         const link = getInviteLink(existing.id!);
-        if (navigator.share) {
-          await navigator.share({
-            title: 'Convite - Meu ID',
-            text: `${userData.displayName} está te convidando para conversar no Meu ID!`,
-            url: link,
-          });
-        } else {
-          await navigator.clipboard.writeText(link);
-        }
+        await navigator.clipboard.writeText(link);
+        
         setShowLinkPanel(true);
         setShared(true);
         setTimeout(() => setShared(false), 3000);
@@ -126,15 +119,7 @@ export const UserCodeCard: React.FC<UserCodeCardProps> = ({ userData }) => {
       setActiveInvite(savedToken);
 
       const link = getInviteLink(tokenId);
-      if (navigator.share) {
-        await navigator.share({
-          title: 'Convite - Meu ID',
-          text: `${userData.displayName} está te convidando para conversar no Meu ID!`,
-          url: link,
-        });
-      } else {
-        await navigator.clipboard.writeText(link);
-      }
+      await navigator.clipboard.writeText(link);
 
       setShowLinkPanel(true);
       setShared(true);

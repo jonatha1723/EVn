@@ -31,14 +31,19 @@ export const MessageList: React.FC<MessageListProps> = ({
   privateKey
 }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const isInitialMount = useRef(true);
+  const mountTime = useRef(Date.now());
 
   useEffect(() => {
-    if (isInitialMount.current && messages.length > 0) {
-      messagesEndRef.current?.scrollIntoView({ behavior: 'auto' });
-      isInitialMount.current = false;
-    } else if (!isInitialMount.current) {
-      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    // Se o componente acabou de ser montado (menos de 2 segundos),
+    // qualquer atualização de mensagens fará um salto instantâneo.
+    const timeSinceMount = Date.now() - mountTime.current;
+    
+    if (messages.length > 0) {
+      if (timeSinceMount < 2000) {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'auto' });
+      } else {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      }
     }
   }, [messages]);
 
