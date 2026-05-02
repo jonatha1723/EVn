@@ -236,7 +236,7 @@ export const useChat = (user: User | null) => {
       setMessages(localMsgs);
 
       const q = query(
-        collection(db, activeGroup ? 'group_messages' : 'chats', chatId, 'messages'),
+        collection(db, activeGroup ? 'groups' : 'chats', chatId, 'messages'),
         orderBy('timestamp', 'asc'),
         limit(100)
       );
@@ -367,7 +367,7 @@ export const useChat = (user: User | null) => {
         );
       }
 
-      const colName = activeGroup ? 'group_messages' : 'chats';
+      const colName = activeGroup ? 'groups' : 'chats';
       const msgId = doc(collection(db, colName, chatId, 'messages')).id;
 
       const msgPayload = {
@@ -464,7 +464,7 @@ export const useChat = (user: User | null) => {
       const cloudinaryResult = await uploadToCloudinary(new File([encryptedBlob], file.name, { type: 'application/octet-stream' }));
       const fileUrl = cloudinaryResult.url;
 
-      const colName = activeGroup ? 'group_messages' : 'chats';
+      const colName = activeGroup ? 'groups' : 'chats';
       const msgId = doc(collection(db, colName, chatId, 'messages')).id;
 
       const msgPayload = {
