@@ -3,7 +3,7 @@ import { User } from 'firebase/auth';
 import { doc, onSnapshot, collection, query, where, addDoc, serverTimestamp, arrayUnion, writeBatch, deleteDoc, limit, getDocs, getDoc, setDoc, orderBy, limitToLast } from 'firebase/firestore';
 import { db, backupDb, handleFirestoreError, OperationType } from '../firebase';
 import { encryptMessage, decryptMessage, encryptData } from '../crypto';
-import { UserData, Message, DecryptedMessage, LocalDeletedMessage, MessagePosition } from '../types';
+import { UserData, Message, DecryptedMessage, LocalDeletedMessage, MessagePosition, Group } from '../types';
 import { useKeys } from './useKeys';
 import { useSocket } from './useSocket';
 import { compressImage } from '../lib/imageUtils';
@@ -21,6 +21,8 @@ export const useChat = (user: User | null) => {
   const [backupMessages, setBackupMessages] = useState<DecryptedMessage[]>([]);
   const [pendingMessages, setPendingMessages] = useState<DecryptedMessage[]>([]);
   const [messageLimit, setMessageLimit] = useState(100);
+  const [adminStats, setAdminStats] = useState<any>(null);
+  const [allUsers, setAllUsers] = useState<UserData[]>([]);
 
   const lastActiveContactId = useRef<string | null>(null);
   const { privateKey } = useKeys(user);
