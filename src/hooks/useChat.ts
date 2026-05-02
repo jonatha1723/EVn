@@ -115,7 +115,7 @@ export const useChat = (user: User | null) => {
     };
     
     updatePresence();
-    const presenceInterval = setInterval(updatePresence, 60000);
+    const presenceInterval = setInterval(updatePresence, 30000);
 
     return () => {
       unsubscribe();

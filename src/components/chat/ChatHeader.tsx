@@ -24,7 +24,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
     if (!activeContact.lastActive) return <p className="text-[10px] text-zinc-500 font-bold tracking-widest uppercase mt-0.5">OFF</p>;
     
     const lastSeen = safeToDate(activeContact.lastActive).getTime();
-    const isOnline = Date.now() - lastSeen < 120000;
+    const isOnline = Date.now() - lastSeen < 150000;
 
     if (isOnline) return <p className="text-[10px] text-emerald-400 font-bold tracking-widest uppercase mt-0.5">ON</p>;
 

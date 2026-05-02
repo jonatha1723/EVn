@@ -69,7 +69,7 @@ export const ContactList: React.FC<ContactListProps> = ({
                   </div>
                   {(() => {
                     const lastSeen = contact.lastActive ? safeToDate(contact.lastActive).getTime() : 0;
-                    const isOnline = contact.lastActive && (Date.now() - lastSeen < 120000);
+                    const isOnline = contact.lastActive && (Date.now() - lastSeen < 150000);
 
                     if (isOnline) {
                       return (
