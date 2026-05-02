@@ -1,3 +1,4 @@
+import React from 'react';
 import { LogOut, Settings, Users, Bell } from 'lucide-react';
 
 interface SidebarHeaderProps {

@@ -1,3 +1,4 @@
+import React from 'react';
 import { Trash2, AlertTriangle, Loader2, MessageSquare, Users as UsersIcon } from 'lucide-react';
 import { UserData, Group, GroupRequest } from '../types';
 import { SidebarHeader } from './sidebar/SidebarHeader';
