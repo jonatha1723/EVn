@@ -19,6 +19,8 @@ export default function App() {
     contacts, 
     activeContact, 
     setActiveContact, 
+    activeGroup,
+    setActiveGroup,
     messages, 
     sendMessage, 
     sendFile,
