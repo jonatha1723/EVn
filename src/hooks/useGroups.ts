@@ -44,7 +44,7 @@ export const useGroups = (user: { uid: string } | null, userData: UserData | nul
     return () => unsubscribe();
   }, [user]);
 
-  const createGroup = async (name: string, imageIndex: number) => {
+  const createGroup = async (name: string, imageIndex: number, customImageUrl?: string) => {
     if (!user || !userData) return;
 
     // Verificar se o usuário já tem um grupo (limite de 1)
@@ -61,6 +61,7 @@ export const useGroups = (user: { uid: string } | null, userData: UserData | nul
       adminUid: user.uid,
       members: [user.uid],
       imageIndex,
+      customImageUrl: customImageUrl || '',
       createdAt: serverTimestamp(),
     };
 

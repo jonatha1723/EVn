@@ -5,7 +5,7 @@ import { X, Users, Check, Loader2 } from 'lucide-react';
 interface CreateGroupModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onCreate: (name: string, imageIndex: number) => Promise<void>;
+  onCreate: (name: string, imageIndex: number, customImageUrl?: string) => Promise<void>;
 }
 
 const PRESET_IMAGES = [
@@ -16,6 +16,7 @@ const PRESET_IMAGES = [
 
 export const CreateGroupModal: React.FC<CreateGroupModalProps> = ({ isOpen, onClose, onCreate }) => {
   const [name, setName] = useState('');
+  const [customImageUrl, setCustomImageUrl] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -23,13 +24,18 @@ export const CreateGroupModal: React.FC<CreateGroupModalProps> = ({ isOpen, onCl
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) return;
+    if (name.length > 15) {
+      setError("O nome do grupo deve ter no máximo 15 caracteres.");
+      return;
+    }
     
     setLoading(true);
     setError('');
     try {
-      await onCreate(name, selectedIndex);
+      await onCreate(name, selectedIndex, customImageUrl);
       onClose();
       setName('');
+      setCustomImageUrl('');
     } catch (err: any) {
       setError(err.message || "Erro ao criar grupo.");
     } finally {
@@ -70,37 +76,56 @@ export const CreateGroupModal: React.FC<CreateGroupModalProps> = ({ isOpen, onCl
                 </button>
               </div>
 
-              <form onSubmit={handleSubmit} className="space-y-8">
+              <form onSubmit={handleSubmit} className="space-y-6">
                 <div>
-                  <label className="block text-[10px] text-zinc-500 uppercase tracking-[0.2em] font-bold mb-3 px-1">
-                    Nome do Grupo
-                  </label>
+                  <div className="flex justify-between items-center mb-3 px-1">
+                    <label className="text-[10px] text-zinc-500 uppercase tracking-[0.2em] font-bold">
+                      Nome do Grupo
+                    </label>
+                    <span className={`text-[10px] font-bold ${name.length > 15 ? 'text-red-500' : 'text-zinc-600'}`}>
+                      {name.length}/15
+                    </span>
+                  </div>
                   <input
                     type="text"
                     value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder="Ex: Equipe de Desenvolvimento"
+                    onChange={(e) => setName(e.target.value.slice(0, 20))} // Allow slightly more for visual feedback then error
+                    placeholder="Ex: Equipe de Elite"
+                    maxLength={15}
                     className="w-full bg-zinc-900/50 border border-zinc-800 rounded-2xl px-6 py-4 text-white placeholder:text-zinc-600 focus:outline-none focus:border-emerald-500/50 focus:bg-zinc-900 transition-all"
                     required
                   />
                 </div>
 
                 <div>
+                  <label className="block text-[10px] text-zinc-500 uppercase tracking-[0.2em] font-bold mb-3 px-1">
+                    URL da Imagem (Opcional)
+                  </label>
+                  <input
+                    type="url"
+                    value={customImageUrl}
+                    onChange={(e) => setCustomImageUrl(e.target.value)}
+                    placeholder="https://link-da-imagem.com/foto.jpg"
+                    className="w-full bg-zinc-900/50 border border-zinc-800 rounded-2xl px-6 py-4 text-white placeholder:text-zinc-600 focus:outline-none focus:border-emerald-500/50 focus:bg-zinc-900 transition-all"
+                  />
+                </div>
+
+                <div>
                   <label className="block text-[10px] text-zinc-500 uppercase tracking-[0.2em] font-bold mb-4 px-1">
-                    Escolha uma Imagem
+                    Ou escolha uma predefinida
                   </label>
                   <div className="grid grid-cols-3 gap-4">
                     {PRESET_IMAGES.map((url, index) => (
                       <button
                         key={index}
                         type="button"
-                        onClick={() => setSelectedIndex(index)}
+                        onClick={() => { setSelectedIndex(index); setCustomImageUrl(''); }}
                         className={`relative aspect-square rounded-2xl overflow-hidden border-2 transition-all ${
-                          selectedIndex === index ? 'border-emerald-500 scale-105 shadow-lg shadow-emerald-500/20' : 'border-transparent opacity-50 hover:opacity-100'
+                          selectedIndex === index && !customImageUrl ? 'border-emerald-500 scale-105 shadow-lg shadow-emerald-500/20' : 'border-transparent opacity-50 hover:opacity-100'
                         }`}
                       >
                         <img src={url} alt={`Opção ${index + 1}`} className="w-full h-full object-cover" />
-                        {selectedIndex === index && (
+                        {selectedIndex === index && !customImageUrl && (
                           <div className="absolute inset-0 bg-emerald-500/10 flex items-center justify-center">
                             <div className="bg-emerald-500 rounded-full p-1">
                               <Check className="w-4 h-4 text-white" />

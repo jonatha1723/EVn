@@ -40,9 +40,10 @@ export const LoginForm: React.FC<LoginFormProps> = ({
               <input
                 type="text"
                 placeholder="Seu nome"
+                maxLength={10}
                 className="w-full bg-zinc-950 border border-zinc-800 rounded-xl py-4 pl-12 pr-4 text-zinc-200 placeholder:text-zinc-700 focus:outline-none focus:border-emerald-500 transition-all text-sm"
                 value={displayName}
-                onChange={(e) => setDisplayName(e.target.value)}
+                onChange={(e) => setDisplayName(e.target.value.slice(0, 10))}
                 required
               />
             </div>

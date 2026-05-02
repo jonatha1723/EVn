@@ -22,6 +22,7 @@ export interface Group {
   members: string[];
   banned?: string[];
   imageIndex: number;
+  customImageUrl?: string;
   createdAt: any;
   lastMessage?: string;
   lastMessageTime?: any;
