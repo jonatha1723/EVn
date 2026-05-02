@@ -22,18 +22,20 @@ service cloud.firestore {
       return data.keys().hasAll(['senderId', 'chatId', 'encryptedContent', 'iv', 'timestamp', 'clientTimestamp']) &&
              data.keys().hasOnly(['senderId', 'senderUid', 'receiverId', 'groupId', 'chatId', 'encryptedContent', 'encryptedKeyForSender', 'encryptedKeyForReceiver', 'iv', 'timestamp', 'clientTimestamp', 'replyToId', 'fileUrl', 'fileName', 'fileType', 'isViewOnce', 'viewedAt', 'senderName']) &&
              data.senderId is string && data.senderId.size() < 128 &&
-             data.receiverId is string && data.receiverId.size() < 128 &&
+             (!('receiverId' in data) || data.receiverId == null || (data.receiverId is string && data.receiverId.size() < 128)) &&
+             (!('groupId' in data) || data.groupId == null || (data.groupId is string && data.groupId.size() < 128)) &&
              data.chatId is string && data.chatId.size() < 512 &&
              data.encryptedContent is string && data.encryptedContent.size() < 1000000 &&
-             data.encryptedKeyForSender is string && data.encryptedKeyForSender.size() < 1000 &&
-             data.encryptedKeyForReceiver is string && data.encryptedKeyForReceiver.size() < 1000 &&
+             (!('encryptedKeyForSender' in data) || data.encryptedKeyForSender == null || (data.encryptedKeyForSender is string && data.encryptedKeyForSender.size() < 1000)) &&
+             (!('encryptedKeyForReceiver' in data) || data.encryptedKeyForReceiver == null || (data.encryptedKeyForReceiver is string && data.encryptedKeyForReceiver.size() < 1000)) &&
              data.iv is string && data.iv.size() < 128 &&
              data.clientTimestamp is number &&
              (!('replyToId' in data) || data.replyToId == null || (data.replyToId is string && data.replyToId.size() < 128)) &&
              (!('fileUrl' in data) || (data.fileUrl is string && data.fileUrl.size() < 2000)) &&
              (!('fileName' in data) || (data.fileName is string && data.fileName.size() < 256)) &&
              (!('fileType' in data) || (data.fileType is string && data.fileType.size() < 128)) &&
-             (!('isViewOnce' in data) || data.isViewOnce is bool);
+             (!('isViewOnce' in data) || data.isViewOnce is bool) &&
+             (!('senderName' in data) || data.senderName is string);
     }
 
     function isValidUser(data) {

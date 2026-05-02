@@ -219,12 +219,12 @@ export const useChat = (user: User | null) => {
   }, [user?.uid, activeContact?.uid, userData?.uniqueCode, privateKey]);
 
   useEffect(() => {
-    if (!user || !activeContact || !privateKey) {
+    if (!user || (!activeContact && !activeGroup) || !privateKey) {
       setMessages([]);
       return;
     }
 
-    const chatId = [user.uid, activeContact.uid].sort().join('_');
+    const chatId = activeGroup ? activeGroup.id : [user.uid, activeContact!.uid].sort().join('_');
     const currentVersion = ++snapshotVersionRef.current;
     let activeUnsub: (() => void) | null = null;
 
@@ -324,11 +324,11 @@ export const useChat = (user: User | null) => {
   }, [user?.uid, activeContact?.uid, activeGroup?.id, privateKey, localDeletedMessages]);
 
   const sendMessage = async (text: string, replyToId?: string) => {
-    if (!user || !activeContact || !userData || !text.trim()) return;
+    if (!user || (!activeContact && !activeGroup) || !userData || !text.trim()) return;
 
     const clientTimestamp = Date.now();
-    const chatId = [user.uid, activeContact.uid].sort().join('_');
-    const backupChatId = [userData.uniqueCode, activeContact.uniqueCode].sort().join('_');
+    const chatId = activeGroup ? activeGroup.id : [user.uid, activeContact!.uid].sort().join('_');
+    const backupChatId = activeGroup ? activeGroup.id : [userData.uniqueCode, activeContact!.uniqueCode].sort().join('_');
 
     const pendingMsg: DecryptedMessage = {
       id: `pending-${clientTimestamp}`,
