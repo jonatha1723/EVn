@@ -215,6 +215,8 @@ export default function App() {
               contacts={contacts}
               activeContact={activeContact}
               setActiveContact={setActiveContact}
+              activeGroup={activeGroup}
+              setActiveGroup={setActiveGroup}
               onLogout={logout}
               onAddContact={addContact}
               onFactoryReset={factoryReset}
@@ -227,6 +229,8 @@ export default function App() {
               user={user}
               activeContact={activeContact}
               setActiveContact={setActiveContact}
+              activeGroup={activeGroup}
+              setActiveGroup={setActiveGroup}
               messages={messages}
               onSendMessage={sendMessage}
               onSendFile={sendFile}

@@ -16,6 +16,7 @@ export const useChat = (user: User | null) => {
   const [userData, setUserData] = useState<UserData | null>(null);
   const [contacts, setContacts] = useState<UserData[]>([]);
   const [activeContact, setActiveContact] = useState<UserData | null>(null);
+  const [activeGroup, setActiveGroup] = useState<Group | null>(null);
   const [messages, setMessages] = useState<DecryptedMessage[]>([]);
   const [backupMessages, setBackupMessages] = useState<DecryptedMessage[]>([]);
   const [pendingMessages, setPendingMessages] = useState<DecryptedMessage[]>([]);
@@ -230,20 +231,15 @@ export const useChat = (user: User | null) => {
       const localMsgs = await localDb.getMessagesByChat(chatId);
       
       if (currentVersion !== snapshotVersionRef.current) return;
-      
       setMessages(localMsgs);
-      const lastTime = localMsgs.length > 0 ? localMsgs[localMsgs.length - 1].clientTimestamp : 0;
 
-      // 2. Ouvimos as mensagens recentes para detectar novos envios e DELEÇÕES
-      // Usamos limitToLast para garantir que vemos as mudanças recentes no chat
-      const qNew = query(
-        collection(db, 'chats', chatId, 'messages'),
-        orderBy('clientTimestamp', 'asc'),
-        limitToLast(100)
+      const q = query(
+        collection(db, activeGroup ? 'group_messages' : 'chats', chatId, 'messages'),
+        orderBy('timestamp', 'asc'),
+        limit(100)
       );
 
-      activeUnsub = onSnapshot(qNew, async (snap) => {
-        // Handle removals (muito importante para sincronizar o "apagar para todos")
+      activeUnsub = onSnapshot(q, async (snap) => {
         const removedIds = snap.docChanges()
           .filter(change => change.type === 'removed')
           .map(change => change.doc.id);
@@ -274,11 +270,30 @@ export const useChat = (user: User | null) => {
         const encryptedKey = isMe ? msgData.encryptedKeyForSender : msgData.encryptedKeyForReceiver;
         
         try {
-          if (!encryptedKey || !privateKey) return { ...msgData, text: (msgData as any).text || "[Protegido]" } as DecryptedMessage;
+          if (!encryptedKey || !privateKey) {
+            // Fallback para grupos (Base64 protocolo)
+            if (msgData.groupId && msgData.iv === 'group-iv') {
+              try {
+                const text = decodeURIComponent(escape(atob(msgData.encryptedContent)));
+                return { ...msgData, text } as DecryptedMessage;
+              } catch (e) {
+                return { ...msgData, text: "[Protegido]" } as DecryptedMessage;
+              }
+            }
+            return { ...msgData, text: "[Protegido]" } as DecryptedMessage;
+          }
+          
           const text = await decryptMessage(msgData.encryptedContent, encryptedKey, msgData.iv, privateKey);
           return { ...msgData, text } as DecryptedMessage;
         } catch (err) {
-          return { ...msgData, text: (msgData as any).text || "[Erro]" } as DecryptedMessage;
+          // Fallback para grupos caso dê erro no decript padrão
+          if (msgData.groupId && msgData.iv === 'group-iv') {
+            try {
+              const text = decodeURIComponent(escape(atob(msgData.encryptedContent)));
+              return { ...msgData, text } as DecryptedMessage;
+            } catch (e) {}
+          }
+          return { ...msgData, text: "[Erro]" } as DecryptedMessage;
         }
       });
 
@@ -304,7 +319,7 @@ export const useChat = (user: User | null) => {
     return () => {
       if (activeUnsub) activeUnsub();
     };
-  }, [user?.uid, activeContact?.uid, privateKey, localDeletedMessages]);
+  }, [user?.uid, activeContact?.uid, activeGroup?.id, privateKey, localDeletedMessages]);
 
   const sendMessage = async (text: string, replyToId?: string) => {
     if (!user || !activeContact || !userData || !text.trim()) return;
@@ -316,48 +331,66 @@ export const useChat = (user: User | null) => {
     const pendingMsg: DecryptedMessage = {
       id: `pending-${clientTimestamp}`,
       senderId: user.uid,
-      receiverId: activeContact.uid,
+      senderUid: user.uid,
+      receiverId: activeContact?.uid,
+      groupId: activeGroup?.id,
       chatId,
       text,
       encryptedContent: '',
-      encryptedKeyForSender: '',
-      encryptedKeyForReceiver: '',
       iv: '',
       clientTimestamp,
       replyToId: replyToId || null,
       isUploading: false,
-      isPending: true
+      isPending: true,
+      senderName: userData.displayName
     };
 
     setPendingMessages(prev => [...prev, pendingMsg]);
 
     try {
-      const encrypted = await encryptMessage(
-        text,
-        userData.publicKey,
-        activeContact.publicKey
-      );
+      let encrypted;
+      if (activeGroup) {
+        // Mock Group Encryption (Base64 for now, explaining in UI)
+        encrypted = {
+          content: btoa(unescape(encodeURIComponent(text))),
+          keySender: '',
+          keyReceiver: '',
+          iv: 'group-iv'
+        };
+      } else {
+        encrypted = await encryptMessage(
+          text,
+          userData.publicKey,
+          activeContact!.publicKey
+        );
+      }
 
-      const msgId = doc(collection(db, 'chats', chatId, 'messages')).id;
+      const colName = activeGroup ? 'group_messages' : 'chats';
+      const msgId = doc(collection(db, colName, chatId, 'messages')).id;
 
       const msgPayload = {
         senderId: user.uid,
-        receiverId: activeContact.uid,
+        senderUid: user.uid,
+        receiverId: activeContact?.uid || null,
+        groupId: activeGroup?.id || null,
         chatId,
-        ...encrypted,
+        encryptedContent: encrypted.content,
+        encryptedKeyForSender: encrypted.keySender,
+        encryptedKeyForReceiver: encrypted.keyReceiver,
+        iv: encrypted.iv,
         timestamp: serverTimestamp(),
         clientTimestamp,
-        replyToId: replyToId || null
+        replyToId: replyToId || null,
+        senderName: userData.displayName
       };
 
-      // 1. Salvar no Servidor ATIVO
-      await setDoc(doc(db, 'chats', chatId, 'messages', msgId), msgPayload);
+      await setDoc(doc(db, colName, chatId, 'messages', msgId), msgPayload);
 
       // 2. Salvar Espelho no Servidor de BACKUP (Usando o mesmo msgId para facilitar deleção)
       await setDoc(doc(backupDb, 'history', msgId), {
         ...msgPayload,
         senderCode: userData.uniqueCode,
-        receiverCode: activeContact.uniqueCode,
+        receiverCode: activeContact?.uniqueCode || null,
         chatId: backupChatId
       }).catch(e => console.warn("[Backup] Falha ao espelhar mensagem:", e));
 
@@ -368,21 +401,22 @@ export const useChat = (user: User | null) => {
   };
 
   const sendFile = async (file: File) => {
-    if (!user || !activeContact || !userData) return;
+    if (!user || (!activeContact && !activeGroup) || !userData) return;
     
     if (!file.type.startsWith('image/')) {
       throw new Error("Apenas imagens são permitidas.");
     }
 
     const clientTimestamp = Date.now();
-    const chatId = [user.uid, activeContact.uid].sort().join('_');
-    const backupChatId = [userData.uniqueCode, activeContact.uniqueCode].sort().join('_');
+    const chatId = activeGroup ? activeGroup.id : [user.uid, activeContact!.uid].sort().join('_');
+    const backupChatId = activeGroup ? activeGroup.id : [userData.uniqueCode, activeContact!.uniqueCode].sort().join('_');
     const localUrl = URL.createObjectURL(file);
 
     const pendingMsg: DecryptedMessage = {
       id: `pending-${clientTimestamp}`,
       senderId: user.uid,
-      receiverId: activeContact.uid,
+      receiverId: activeContact?.uid || null,
+      groupId: activeGroup?.id || null,
       chatId,
       text: '',
       encryptedContent: '',
@@ -409,21 +443,33 @@ export const useChat = (user: User | null) => {
       const arrayBuffer = await fileToProcess.arrayBuffer();
       const data = new Uint8Array(arrayBuffer);
       
-      const encrypted = await encryptData(
-        data,
-        userData.publicKey,
-        activeContact.publicKey
-      );
+      let encrypted;
+      if (activeGroup) {
+        encrypted = {
+          encryptedContent: btoa(String.fromCharCode(...data)),
+          encryptedKeyForSender: '',
+          encryptedKeyForReceiver: '',
+          iv: 'group-iv'
+        };
+      } else {
+        encrypted = await encryptData(
+          data,
+          userData.publicKey,
+          activeContact!.publicKey
+        );
+      }
 
       const encryptedBlob = new Blob([encrypted.encryptedContent], { type: 'application/octet-stream' });
       const cloudinaryResult = await uploadToCloudinary(new File([encryptedBlob], file.name, { type: 'application/octet-stream' }));
       const fileUrl = cloudinaryResult.url;
 
-      const msgId = doc(collection(db, 'chats', chatId, 'messages')).id;
+      const colName = activeGroup ? 'group_messages' : 'chats';
+      const msgId = doc(collection(db, colName, chatId, 'messages')).id;
 
       const msgPayload = {
         senderId: user.uid,
-        receiverId: activeContact.uid,
+        receiverId: activeContact?.uid || null,
+        groupId: activeGroup?.id || null,
         chatId,
         encryptedContent: '[Arquivo]',
         encryptedKeyForSender: encrypted.encryptedKeyForSender,
@@ -437,13 +483,13 @@ export const useChat = (user: User | null) => {
       };
 
       // 1. Salvar no Servidor ATIVO
-      await setDoc(doc(db, 'chats', chatId, 'messages', msgId), msgPayload);
+      await setDoc(doc(db, colName, chatId, 'messages', msgId), msgPayload);
 
       // 2. Salvar Espelho no Servidor de BACKUP
       await setDoc(doc(backupDb, 'history', msgId), {
         ...msgPayload,
         senderCode: userData.uniqueCode,
-        receiverCode: activeContact.uniqueCode,
+        receiverCode: activeContact?.uniqueCode || null,
         chatId: backupChatId
       }).catch(e => console.warn("[Backup] Falha ao espelhar arquivo:", e));
 
@@ -458,46 +504,12 @@ export const useChat = (user: User | null) => {
     if (!user || !userData || !code.trim()) return;
     if (code === userData.uniqueCode) throw new Error("Você não pode adicionar a si mesmo.");
     
-    // Verificar se está bloqueado localmente antes de tentar
-    if (lockTimeRemaining !== null && lockTimeRemaining > 0) {
-      const minutes = Math.floor(lockTimeRemaining / 60);
-      const seconds = lockTimeRemaining % 60;
-      throw new Error(`Busca bloqueada. Aguarde ${minutes}:${seconds.toString().padStart(2, '0')}`);
-    }
-
     try {
       const q = query(collection(db, 'users'), where('uniqueCode', '==', code), limit(1));
       const querySnapshot = await getDocs(q);
 
       if (querySnapshot.empty) {
-        // Lógica de Rate Limit: Incrementar falhas
-        const limitRef = doc(db, 'rateLimits', user.uid);
-        const limitSnap = await getDoc(limitRef);
-        const currentData = limitSnap.exists() ? limitSnap.data() : { attempts: 0 };
-        const newAttempts = (currentData.attempts || 0) + 1;
-        
-        let lockedUntil = null;
-        if (newAttempts === 3) {
-          // 3 erros = 5 minutos de molho
-          lockedUntil = new Date(Date.now() + 5 * 60 * 1000);
-        } else if (newAttempts > 3) {
-          // Erro de novo = 3 minutos de molho (permitindo apenas 1 tentativa extra por vez)
-          lockedUntil = new Date(Date.now() + 3 * 60 * 1000);
-        }
-
-        await setDoc(limitRef, {
-          attempts: newAttempts,
-          lastAttempt: serverTimestamp(),
-          ...(lockedUntil ? { lockedUntil: lockedUntil } : {})
-        }, { merge: true });
-
-        if (lockedUntil) {
-          throw new Error(`Código inválido. Limite de tentativas atingido. Bloqueado por ${newAttempts === 3 ? '5' : '3'} minutos.`);
-        }
-        
-        // Se errou menos de 3 vezes, mostra quanto falta
-        const remaining = 3 - newAttempts;
-        throw new Error(`Código inválido. Você tem mais ${remaining} tentativas antes do bloqueio.`);
+        throw new Error("Código inválido.");
       }
 
       const contactData = querySnapshot.docs[0].data() as UserData;
@@ -514,16 +526,45 @@ export const useChat = (user: User | null) => {
         contacts: arrayUnion(user.uid)
       });
 
-      // Resetar tentativas ao acertar
-      batch.set(doc(db, 'rateLimits', user.uid), { attempts: 0, lockedUntil: null }, { merge: true });
-
       await batch.commit();
     } catch (error: any) {
-      // Se o erro vier das Security Rules (lockout)
-      if (error.message?.includes('permission-denied') || error.code === 'permission-denied') {
-        throw new Error("Busca bloqueada pelo servidor. Aguarde o tempo de espera.");
-      }
       throw error;
+    }
+  };
+
+  const deleteMessage = async (msgId: string) => {
+    const colName = activeGroup ? 'group_messages' : 'chats';
+    const chatId = activeGroup ? activeGroup.id : [user?.uid, activeContact?.uid].sort().join('_');
+    
+    setLocalDeletedMessages(prev => {
+      const newSet = new Set(prev);
+      newSet.add(msgId);
+      localStorage.setItem('deletedMessages', JSON.stringify(Array.from(newSet)));
+      return newSet;
+    });
+
+    try {
+      await deleteDoc(doc(db, colName, chatId, 'messages', msgId));
+      await deleteDoc(doc(backupDb, 'history', msgId)).catch(() => {});
+      await localDb.deleteMessages([msgId]);
+    } catch (error) {
+      console.error("Error deleting message:", error);
+    }
+  };
+
+  const clearChatLocally = (messageIds: string[]) => {
+    setLocalDeletedMessages(prev => {
+      const newSet = new Set(prev);
+      messageIds.forEach(id => newSet.add(id));
+      localStorage.setItem('deletedMessages', JSON.stringify(Array.from(newSet)));
+      return newSet;
+    });
+    
+    if ((activeContact || activeGroup) && user) {
+      const chatId = activeGroup ? activeGroup.id : [user.uid, activeContact!.uid].sort().join('_');
+      localDb.clearChat(chatId).then(() => {
+        setMessages([]);
+      });
     }
   };
 
@@ -533,10 +574,6 @@ export const useChat = (user: User | null) => {
       const batch = writeBatch(db);
       const usersSnap = await getDocs(collection(db, 'users'));
       usersSnap.docs.forEach(docSnap => {
-        if (docSnap.id !== user.uid) batch.delete(docSnap.ref);
-      });
-      const privateKeysSnap = await getDocs(collection(db, 'privateKeys'));
-      privateKeysSnap.docs.forEach(docSnap => {
         if (docSnap.id !== user.uid) batch.delete(docSnap.ref);
       });
       const chatsSnap = await getDocs(collection(db, 'chats'));
@@ -552,83 +589,6 @@ export const useChat = (user: User | null) => {
     }
   };
 
-  const deleteMessage = async (msgId: string) => {
-    const msg = allMessages.find(m => m.id === msgId);
-    if (!msg) return; // Silently exit if message already gone/not found
-    
-    // 1. Atualizar estado local imediatamente para feedback instantâneo
-    const time = getMessageTime(msg);
-    
-    setLocalDeletedMessages(prev => {
-      const newSet = new Set(prev);
-      newSet.add(msgId);
-      localStorage.setItem('deletedMessages', JSON.stringify(Array.from(newSet)));
-      return newSet;
-    });
-
-    setLocalDeletedTimes(prev => {
-      const newSet = new Set(prev);
-      newSet.add(time);
-      localStorage.setItem('deletedTimes', JSON.stringify(Array.from(newSet)));
-      return newSet;
-    });
-
-    try {
-      const currentChatId = [user?.uid, activeContact?.uid].sort().join('_');
-      
-      // 2. Apagar do servidor principal (Firestore 2)
-      await deleteDoc(doc(db, 'chats', currentChatId, 'messages', msgId));
-      
-      // 3. Apagar do servidor de backup (Firestore 1) - Coleção 'history'
-      // Primeiro tentamos pelo ID consistente (funciona para mensagens novas)
-      await deleteDoc(doc(backupDb, 'history', msgId)).catch(() => {});
-
-      // 4. Fallback: Se for uma mensagem antiga (ID aleatório no backup), 
-      // lançamos uma limpeza baseada em metadados para garantir que suma do backup.
-      if (userData && activeContact) {
-        const backupChatId = [userData.uniqueCode, activeContact.uniqueCode].sort().join('_');
-        const qHistory = query(
-          collection(backupDb, 'history'),
-          where('chatId', '==', backupChatId),
-          where('clientTimestamp', '==', time)
-        );
-        getDocs(qHistory).then(snap => {
-          snap.docs.forEach(d => deleteDoc(d.ref).catch(() => {}));
-        });
-      }
-      
-      // 5. Remover do banco local (IndexedDB)
-      await localDb.deleteMessages([msgId]);
-
-      // 6. Remover do estado local de pendentes se for o caso
-      if (msgId.startsWith('pending-')) {
-        setPendingMessages(prev => prev.filter(m => m.id !== msgId));
-      }
-    } catch (error) {
-      console.error("Error deleting message:", error);
-      handleFirestoreError(error, OperationType.DELETE, `messages/${msgId}`);
-    }
-  };
-
-  const clearChatLocally = (messageIds: string[]) => {
-    setLocalDeletedMessages(prev => {
-      const newSet = new Set(prev);
-      messageIds.forEach(id => newSet.add(id));
-      localStorage.setItem('deletedMessages', JSON.stringify(Array.from(newSet)));
-      return newSet;
-    });
-    
-    // Limpar o banco de dados IndexedDB para este chat para economizar espaço
-    if (activeContact && user) {
-      const chatId = [user.uid, activeContact.uid].sort().join('_');
-      localDb.clearChat(chatId).then(() => {
-        setMessages([]); // Limpa a UI imediatamente
-      });
-    }
-  };
-
-  const [adminStats, setAdminStats] = useState<{ totalUsers: number, totalChats: number, totalMessages: number } | null>(null);
-  const [allUsers, setAllUsers] = useState<UserData[]>([]);
   const [lockTimeRemaining, setLockTimeRemaining] = useState<number | null>(null);
 
   // Monitorar bloqueio de busca
@@ -722,6 +682,8 @@ export const useChat = (user: User | null) => {
     contacts,
     activeContact: activeContact ? contacts.find(c => c.uid === activeContact.uid) || activeContact : null,
     setActiveContact,
+    activeGroup,
+    setActiveGroup,
     messages: allMessages,
     sendMessage,
     sendFile,

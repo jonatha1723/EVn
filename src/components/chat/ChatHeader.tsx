@@ -18,7 +18,10 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
   hasMessages,
   isTyping
 }) => {
-  const presenceStatus = (() => {
+    if (activeContact.email === 'Grupo') {
+      return <p className="text-[10px] text-zinc-500 font-bold tracking-widest uppercase mt-0.5">Grupo • Criptografado</p>;
+    }
+    
     if (isTyping) return <p className="text-[10px] text-emerald-400 font-bold tracking-wider animate-pulse">Digitando...</p>;
     
     if (!activeContact.lastActive) return <p className="text-[10px] text-zinc-500 font-bold tracking-widest uppercase mt-0.5">OFF</p>;
@@ -40,7 +43,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
         >
           <ArrowLeft className="w-6 h-6" />
         </button>
-        <div className="w-12 h-12 rounded-2xl bg-zinc-900 border border-zinc-800 text-emerald-500 flex items-center justify-center font-bold text-xl shadow-inner">
+        <div className={`w-12 h-12 rounded-2xl bg-zinc-900 border border-zinc-800 flex items-center justify-center font-bold text-xl shadow-inner ${activeContact.email === 'Grupo' ? 'text-emerald-400 bg-emerald-500/5 border-emerald-500/20' : 'text-emerald-500'}`}>
           {activeContact.displayName.charAt(0).toUpperCase()}
         </div>
         <div className="flex-1 overflow-hidden">

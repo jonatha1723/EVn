@@ -84,6 +84,12 @@ export const MessageItem: React.FC<MessageItemProps> = ({
         {repliedMsg && (
           <MessageReply repliedMsg={repliedMsg} user={user} activeContact={activeContact} />
         )}
+
+        {msg.groupId && !isMe && msg.senderName && (
+          <p className="text-[10px] font-black text-emerald-400 uppercase tracking-widest mb-1.5 drop-shadow-sm">
+            {msg.senderName}
+          </p>
+        )}
         
         <MessageFile msg={msg} privateKey={privateKey} currentUserId={user.uid} />
 
