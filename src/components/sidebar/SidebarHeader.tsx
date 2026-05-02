@@ -1,4 +1,4 @@
-import React from 'react';
+import { FC } from 'react';
 import { LogOut, Settings, Users, Bell } from 'lucide-react';
 
 interface SidebarHeaderProps {
@@ -9,7 +9,7 @@ interface SidebarHeaderProps {
   hasNotifications: boolean;
 }
 
-export const SidebarHeader: React.FC<SidebarHeaderProps> = ({ 
+export const SidebarHeader: FC<SidebarHeaderProps> = ({ 
   onLogout, 
   onOpenSettings,
   onCreateGroup,

@@ -97,7 +97,7 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
                 )}
               </div>
             </div>
-          </div>
+          </motion.div>
         </div>
       )}
     </AnimatePresence>

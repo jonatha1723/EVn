@@ -1,4 +1,4 @@
-import React from 'react';
+import { useState, useEffect, FC } from 'react';
 import { Trash2, AlertTriangle, Loader2, MessageSquare, Users as UsersIcon } from 'lucide-react';
 import { UserData, Group, GroupRequest } from '../types';
 import { SidebarHeader } from './sidebar/SidebarHeader';
@@ -27,7 +27,7 @@ interface SidebarProps {
   onUpdateSettings: (settings: any) => void;
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({
+export const Sidebar: FC<SidebarProps> = ({
   userData,
   contacts,
   activeContact,
@@ -41,12 +41,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
   settings,
   onUpdateSettings
 }) => {
-  const [isConfirming, setIsConfirming] = React.useState(false);
-  const [isResetting, setIsResetting] = React.useState(false);
-  const [showSettings, setShowSettings] = React.useState(false);
-  const [showCreateGroup, setShowCreateGroup] = React.useState(false);
-  const [showNotifications, setShowNotifications] = React.useState(false);
-  const [activeTab, setActiveTab] = React.useState<'chats' | 'groups'>('chats');
+  const [isConfirming, setIsConfirming] = useState(false);
+  const [isResetting, setIsResetting] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [showCreateGroup, setShowCreateGroup] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [activeTab, setActiveTab] = useState<'chats' | 'groups'>('chats');
 
   const { groups, requests, createGroup, handleRequest, loadingGroups } = useGroups(userData, userData);
 

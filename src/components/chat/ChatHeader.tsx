@@ -18,6 +18,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
   hasMessages,
   isTyping
 }) => {
+  const presenceStatus = (() => {
     if (activeContact.email === 'Grupo') {
       return <p className="text-[10px] text-zinc-500 font-bold tracking-widest uppercase mt-0.5">Grupo • Criptografado</p>;
     }
