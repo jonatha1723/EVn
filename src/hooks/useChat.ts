@@ -354,9 +354,9 @@ export const useChat = (user: User | null) => {
       if (activeGroup) {
         // Mock Group Encryption (Base64 for now, explaining in UI)
         encrypted = {
-          content: btoa(unescape(encodeURIComponent(text))),
-          keySender: '',
-          keyReceiver: '',
+          encryptedContent: btoa(unescape(encodeURIComponent(text))),
+          encryptedKeyForSender: '',
+          encryptedKeyForReceiver: '',
           iv: 'group-iv'
         };
       } else {
@@ -372,13 +372,12 @@ export const useChat = (user: User | null) => {
 
       const msgPayload = {
         senderId: user.uid,
-        senderUid: user.uid,
         receiverId: activeContact?.uid || null,
         groupId: activeGroup?.id || null,
         chatId,
-        encryptedContent: encrypted.content,
-        encryptedKeyForSender: encrypted.keySender,
-        encryptedKeyForReceiver: encrypted.keyReceiver,
+        encryptedContent: encrypted.encryptedContent,
+        encryptedKeyForSender: encrypted.encryptedKeyForSender,
+        encryptedKeyForReceiver: encrypted.encryptedKeyForReceiver,
         iv: encrypted.iv,
         timestamp: serverTimestamp(),
         clientTimestamp,

@@ -19,8 +19,8 @@ service cloud.firestore {
     }
 
     function isValidMessage(data) {
-      return data.keys().hasAll(['senderId', 'receiverId', 'chatId', 'encryptedContent', 'encryptedKeyForSender', 'encryptedKeyForReceiver', 'iv', 'timestamp', 'clientTimestamp']) &&
-             data.keys().hasOnly(['senderId', 'receiverId', 'chatId', 'encryptedContent', 'encryptedKeyForSender', 'encryptedKeyForReceiver', 'iv', 'timestamp', 'clientTimestamp', 'replyToId', 'fileUrl', 'fileName', 'fileType', 'isViewOnce', 'viewedAt']) &&
+      return data.keys().hasAll(['senderId', 'chatId', 'encryptedContent', 'iv', 'timestamp', 'clientTimestamp']) &&
+             data.keys().hasOnly(['senderId', 'senderUid', 'receiverId', 'groupId', 'chatId', 'encryptedContent', 'encryptedKeyForSender', 'encryptedKeyForReceiver', 'iv', 'timestamp', 'clientTimestamp', 'replyToId', 'fileUrl', 'fileName', 'fileType', 'isViewOnce', 'viewedAt', 'senderName']) &&
              data.senderId is string && data.senderId.size() < 128 &&
              data.receiverId is string && data.receiverId.size() < 128 &&
              data.chatId is string && data.chatId.size() < 512 &&
