@@ -2,7 +2,7 @@ import React from 'react';
 import { User as UserIcon, MessageSquare } from 'lucide-react';
 import { motion } from 'motion/react';
 import { UserData } from '../../types';
-import { safeToDate } from '../../lib/dateUtils';
+import { safeToDate, getRelativeTime } from '../../lib/dateUtils';
 
 interface ContactListProps {
   contacts: UserData[];
@@ -88,7 +88,7 @@ export const ContactList: React.FC<ContactListProps> = ({
                       <div className="flex items-center gap-1.5 mt-0.5">
                         <div className="w-1.5 h-1.5 rounded-full bg-zinc-600" />
                         <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">
-                          OFF {lastSeen ? `• ${isToday ? timeStr : dateStr}` : ''}
+                          OFF • {getRelativeTime(contact.lastActive)}
                         </p>
                       </div>
                     );

@@ -1,7 +1,7 @@
 import React from 'react';
 import { ArrowLeft, Trash2 } from 'lucide-react';
 import { UserData } from '../../types';
-import { safeToDate } from '../../lib/dateUtils';
+import { safeToDate, getRelativeTime } from '../../lib/dateUtils';
 
 interface ChatHeaderProps {
   activeContact: UserData;
@@ -28,10 +28,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
 
     if (isOnline) return <p className="text-[10px] text-emerald-400 font-bold tracking-widest uppercase mt-0.5">ON</p>;
 
-    const timeStr = safeToDate(activeContact.lastActive).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    const isToday = new Date().toDateString() === safeToDate(activeContact.lastActive).toDateString();
-    
-    return <p className="text-[10px] text-zinc-500 font-bold tracking-widest uppercase mt-0.5">OFF • {isToday ? timeStr : safeToDate(activeContact.lastActive).toLocaleDateString([], { day: '2-digit', month: '2-digit' })}</p>;
+    return <p className="text-[10px] text-zinc-500 font-bold tracking-widest uppercase mt-0.5">OFF • {getRelativeTime(activeContact.lastActive)}</p>;
   })();
 
   return (

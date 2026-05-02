@@ -82,19 +82,41 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
               isTyping={isContactTyping}
             />
 
-            <MessageList 
-              messages={filteredMessages}
-              user={user}
-              activeContact={activeContact}
-              messageLimit={messageLimit}
-              onLoadMore={() => setMessageLimit(prev => prev + 50)}
-              onSelectMessage={handleSelectMessage}
-              isTranslating={isTranslating}
-              translatedMessages={translatedMessages}
-              selectedMessageId={selectedMessage?.id || null}
-              privateKey={privateKey}
-              settings={settings}
-            />
+            <div className="flex-1 overflow-hidden flex flex-col relative">
+              <MessageList 
+                messages={filteredMessages}
+                user={user}
+                activeContact={activeContact}
+                messageLimit={messageLimit}
+                onLoadMore={() => setMessageLimit(prev => prev + 50)}
+                onSelectMessage={handleSelectMessage}
+                isTranslating={isTranslating}
+                translatedMessages={translatedMessages}
+                selectedMessageId={selectedMessage?.id || null}
+                privateKey={privateKey}
+                settings={settings}
+              />
+              
+              <AnimatePresence>
+                {isContactTyping && (
+                  <motion.div 
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 10 }}
+                    className="absolute bottom-6 left-6 md:left-10 flex items-center gap-3 py-2 px-4 bg-zinc-950/80 backdrop-blur-xl rounded-2xl border border-emerald-500/10 shadow-2xl z-20"
+                  >
+                    <div className="flex gap-1.5">
+                      <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-bounce [animation-delay:-0.3s]" />
+                      <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-bounce [animation-delay:-0.15s]" />
+                      <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-bounce" />
+                    </div>
+                    <span className="text-[10px] font-bold text-emerald-500/80 uppercase tracking-[0.2em]">
+                      {activeContact.displayName} está digitando...
+                    </span>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
 
             <MessageInput 
               newMessage={newMessage}
