@@ -1,5 +1,15 @@
 {
   "projects": {
     "default": "ev-n-deploy"
-  }
+  },
+  "targets": {
+    "ev-n-deploy": {
+      "hosting": {
+        "eve-jn": [
+          "eve-jn"
+        ]
+      }
+    }
+  },
+  "etags": {}
 }
