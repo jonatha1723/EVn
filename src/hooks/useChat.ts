@@ -618,8 +618,7 @@ export const useChat = (user: User | null) => {
       throw new Error("Pedido ja enviado. Acompanhe pelo sininho.");
     }
 
-    const batch = writeBatch(db);
-    batch.set(doc(db, 'requests', requestId), {
+    await setDoc(doc(db, 'requests', requestId), {
       id: requestId,
       type: 'friend',
       fromUid: user.uid,
@@ -631,11 +630,15 @@ export const useChat = (user: User | null) => {
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     });
-    batch.set(doc(db, 'requestCounters', user.uid), {
+    await updateDoc(doc(db, 'requestCounters', user.uid), {
       pendingOutgoingCount: increment(1),
       updatedAt: serverTimestamp(),
-    }, { merge: true });
-    await batch.commit();
+    }).catch(async () => {
+      await setDoc(doc(db, 'requestCounters', user.uid), {
+        pendingOutgoingCount: 1,
+        updatedAt: serverTimestamp(),
+      });
+    });
   };
 
   const updateUserPrivacySettings = async (settingsUpdate: Partial<NonNullable<UserData['settings']>>) => {

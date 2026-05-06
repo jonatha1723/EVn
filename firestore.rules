@@ -1,315 +1,91 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    
-    function isAuthenticated() {
+
+    function isAuth() {
       return request.auth != null;
-    }
-    
-    function isOwner(userId) {
-      return isAuthenticated() && request.auth.uid == userId;
     }
 
     function isAdmin() {
-      return isAuthenticated() &&
-        (
-          request.auth.token.email == "jogonesteterp@gmail.com" ||
-          (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('role', 'user') == 'admin')
-        );
-    }
-
-    function isValidMessage(data) {
-      return data.keys().hasAll(['senderId', 'chatId', 'encryptedContent', 'iv', 'timestamp', 'clientTimestamp']) &&
-             data.keys().hasOnly(['senderId', 'senderUid', 'receiverId', 'groupId', 'chatId', 'encryptedContent', 'encryptedKeyForSender', 'encryptedKeyForReceiver', 'iv', 'timestamp', 'clientTimestamp', 'replyToId', 'fileUrl', 'fileName', 'fileType', 'isViewOnce', 'viewedAt', 'senderName']) &&
-             data.senderId is string && data.senderId.size() < 128 &&
-             (!('receiverId' in data) || data.receiverId == null || (data.receiverId is string && data.receiverId.size() < 128)) &&
-             (!('groupId' in data) || data.groupId == null || (data.groupId is string && data.groupId.size() < 128)) &&
-             data.chatId is string && data.chatId.size() < 512 &&
-             data.encryptedContent is string && data.encryptedContent.size() < 1000000 &&
-             (!('encryptedKeyForSender' in data) || data.encryptedKeyForSender == null || (data.encryptedKeyForSender is string && data.encryptedKeyForSender.size() < 1000)) &&
-             (!('encryptedKeyForReceiver' in data) || data.encryptedKeyForReceiver == null || (data.encryptedKeyForReceiver is string && data.encryptedKeyForReceiver.size() < 1000)) &&
-             data.iv is string && data.iv.size() < 128 &&
-             data.clientTimestamp is number &&
-             (!('replyToId' in data) || data.replyToId == null || (data.replyToId is string && data.replyToId.size() < 128)) &&
-             (!('fileUrl' in data) || (data.fileUrl is string && data.fileUrl.size() < 2000)) &&
-             (!('fileName' in data) || (data.fileName is string && data.fileName.size() < 256)) &&
-             (!('fileType' in data) || (data.fileType is string && data.fileType.size() < 128)) &&
-             (!('isViewOnce' in data) || data.isViewOnce is bool) &&
-             (!('senderName' in data) || data.senderName is string);
-    }
-
-    function isValidUser(data) {
-      return data.keys().hasAll(['uid', 'displayName', 'email', 'uniqueCode', 'publicKey']) &&
-             data.keys().hasOnly(['uid', 'displayName', 'email', 'uniqueCode', 'publicKey', 'contacts', 'role', 'lastActive', 'settings']) &&
-             data.uid is string && data.uid.size() < 128 &&
-             data.displayName is string && data.displayName.size() < 128 &&
-             data.email is string && data.email.size() < 128 &&
-             data.email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$") &&
-             data.uniqueCode is string && data.uniqueCode.size() < 128 &&
-             data.publicKey is map && data.publicKey.size() < 20 &&
-             (!('contacts' in data) || (data.contacts is list && data.contacts.size() < 500)) &&
-             (!('role' in data) || data.role in ['admin', 'user']) &&
-             (!('settings' in data) || data.settings is map);
-    }
-
-    function isValidPrivateKey(data) {
-      return data.keys().hasAll(['uid', 'key']) &&
-             data.keys().hasOnly(['uid', 'key']) &&
-             data.uid is string && data.uid.size() < 128 &&
-             data.key is map && data.key.size() < 20;
-    }
-
-    function isValidGroup(data) {
-      return data.keys().hasAll(['id', 'name', 'adminUid', 'members', 'imageIndex', 'createdAt']) &&
-             data.keys().hasOnly(['id', 'name', 'adminUid', 'members', 'memberJoinedAt', 'banned', 'mutedUntil', 'imageIndex', 'customImageUrl', 'createdAt', 'lastMessage', 'lastMessageTime']) &&
-             data.id is string && data.id.size() < 128 &&
-             data.name is string && data.name.size() > 0 && data.name.size() <= 30 &&
-             data.adminUid is string && data.adminUid.size() < 128 &&
-             data.members is list && data.members.size() > 0 && data.members.size() < 500 &&
-             data.imageIndex is int &&
-             (!('memberJoinedAt' in data) || (data.memberJoinedAt is map && data.memberJoinedAt.size() < 500)) &&
-             (!('banned' in data) || (data.banned is list && data.banned.size() < 500)) &&
-             (!('mutedUntil' in data) || (data.mutedUntil is map && data.mutedUntil.size() < 500)) &&
-             (!('customImageUrl' in data) || data.customImageUrl is string) &&
-             (!('lastMessage' in data) || data.lastMessage is string);
-    }
-
-    function groupDoc(groupId) {
-      return get(/databases/$(database)/documents/groups/$(groupId));
-    }
-
-    function isGroupMember(groupId) {
-      return isAuthenticated() &&
-             exists(/databases/$(database)/documents/groups/$(groupId)) &&
-             request.auth.uid in groupDoc(groupId).data.members;
-    }
-
-    function groupJoinTime(groupId) {
-      return groupDoc(groupId).data.get('memberJoinedAt', {}).get(request.auth.uid, 0);
-    }
-
-    function hasPendingGroupInvite(groupId) {
-      return exists(/databases/$(database)/documents/requests/$(groupId + "_" + request.auth.uid)) &&
-             get(/databases/$(database)/documents/requests/$(groupId + "_" + request.auth.uid)).data.type == 'group' &&
-             get(/databases/$(database)/documents/requests/$(groupId + "_" + request.auth.uid)).data.groupId == groupId &&
-             get(/databases/$(database)/documents/requests/$(groupId + "_" + request.auth.uid)).data.toUid == request.auth.uid &&
-             get(/databases/$(database)/documents/requests/$(groupId + "_" + request.auth.uid)).data.status == 'pending';
-    }
-
-    function isJoiningGroupWithInvite(groupId) {
-      return isAuthenticated() &&
-             !(request.auth.uid in resource.data.members) &&
-             request.auth.uid in request.resource.data.members &&
-             !(request.auth.uid in resource.data.get('banned', [])) &&
-             request.resource.data.diff(resource.data).affectedKeys().hasOnly(['members', 'memberJoinedAt']) &&
-             request.resource.data.members.hasAll(resource.data.members) &&
-             request.resource.data.members.size() == resource.data.members.size() + 1 &&
-             request.resource.data.get('memberJoinedAt', {}).get(request.auth.uid, 0) is number &&
-             hasPendingGroupInvite(groupId);
-    }
-
-    function isMutedInGroup(groupId) {
-      return groupDoc(groupId).data.get('mutedUntil', {}).get(request.auth.uid, 0) > request.time.toMillis();
-    }
-
-    function isValidRequest(data) {
-      return data.keys().hasAll(['id', 'type', 'fromUid', 'fromName', 'toUid', 'status', 'createdAt']) &&
-             data.keys().hasOnly(['id', 'type', 'fromUid', 'fromName', 'fromCode', 'toUid', 'targetCode', 'groupId', 'groupName', 'status', 'createdAt', 'updatedAt']) &&
-             data.id is string &&
-             data.type in ['friend', 'group'] &&
-             data.fromUid is string &&
-             data.toUid is string &&
-             data.fromName is string &&
-             data.status in ['pending', 'accepted', 'declined', 'cancelled'];
-    }
-
-    function targetAllowsFriendRequest() {
-      return exists(/databases/$(database)/documents/users/$(request.resource.data.toUid)) &&
-             !(request.auth.uid in get(/databases/$(database)/documents/users/$(request.resource.data.toUid)).data.get('settings', {}).get('blockedInviteUids', []));
-    }
-
-    function friendRequestCounterIsValid() {
-      return getAfter(/databases/$(database)/documents/requestCounters/$(request.auth.uid)).data.pendingOutgoingCount is number &&
-             getAfter(/databases/$(database)/documents/requestCounters/$(request.auth.uid)).data.pendingOutgoingCount <= 3;
+      return isAuth() && request.auth.token.email == "jogonesteterp@gmail.com";
     }
 
     match /privateKeys/{userId} {
-      allow read: if isOwner(userId);
-      allow list: if isAdmin();
-      allow create: if isOwner(userId) && isValidPrivateKey(request.resource.data) && request.resource.data.uid == userId;
-      allow update: if isOwner(userId) && isValidPrivateKey(request.resource.data) && request.resource.data.uid == userId;
-      allow delete: if isAdmin();
+      allow read, write: if isAuth() && request.auth.uid == userId || isAdmin();
     }
 
     match /users/{userId} {
-      allow get, list: if isAuthenticated();
-      allow create: if isOwner(userId) && isValidUser(request.resource.data) && request.resource.data.uid == userId && (!('role' in request.resource.data) || request.resource.data.role != 'admin');
-      allow update: if (isOwner(userId) && isValidUser(request.resource.data) && request.resource.data.uid == userId && (!('role' in request.resource.data) || request.resource.data.role == resource.data.role)) || isAdmin() ||
-        (
-          isAuthenticated() &&
-          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['contacts']) &&
-          request.resource.data.contacts is list &&
-          request.resource.data.contacts.size() < 500 &&
-          request.auth.uid in request.resource.data.contacts &&
-          request.resource.data.contacts.hasAll(resource.data.get('contacts', []))
-        );
+      allow read: if isAuth();
+      allow create: if isAuth() && request.auth.uid == userId;
+      allow update: if isAuth() && request.auth.uid == userId || isAdmin() ||
+        (isAuth() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['contacts']));
       allow delete: if isAdmin();
     }
-    
+
     match /chats/{chatId} {
-      allow read: if isAuthenticated() && chatId.matches('.*' + request.auth.uid + '.*');
-      allow list: if isAdmin();
-      allow delete: if isAdmin();
-      
+      allow read, write: if isAuth() && chatId.matches('.*' + request.auth.uid + '.*');
       match /messages/{messageId} {
-        allow read: if isAuthenticated() && chatId.matches('.*' + request.auth.uid + '.*');
-        allow list: if isAdmin();
-        allow create: if isAuthenticated() && chatId.matches('.*' + request.auth.uid + '.*') && request.auth.uid == request.resource.data.senderId && isValidMessage(request.resource.data);
-        allow delete: if isAuthenticated() && (request.auth.uid == resource.data.senderId || isAdmin());
+        allow read, write, delete: if isAuth() && chatId.matches('.*' + request.auth.uid + '.*');
       }
     }
 
-    // Typing indicators (realtime)
     match /typing/{chatId} {
-      allow read: if isAuthenticated() && chatId.matches('.*' + request.auth.uid + '.*');
-      allow write: if isAuthenticated() && chatId.matches('.*' + request.auth.uid + '.*');
+      allow read, write: if isAuth();
     }
 
-    // Convites temporários (validade de 1 hora, uso único)
     match /inviteTokens/{tokenId} {
       allow read: if true;
-      allow create: if isAuthenticated()
-        && request.resource.data.creatorUid == request.auth.uid
-        && request.resource.data.keys().hasAll(['creatorUid', 'creatorName', 'creatorCode', 'createdAt', 'expiresAt', 'used'])
-        && request.resource.data.creatorName is string
-        && request.resource.data.creatorName.size() < 128
-        && request.resource.data.creatorCode is string
-        && request.resource.data.creatorCode.size() < 128
-        && request.resource.data.createdAt is number
-        && request.resource.data.expiresAt is number
-        && request.resource.data.used == false;
-      allow update: if isAuthenticated()
-        && resource.data.used == false
-        && request.resource.data.used == true
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['used', 'usedBy'])
-        && request.resource.data.usedBy == request.auth.uid;
-      allow delete: if isAuthenticated() && resource.data.creatorUid == request.auth.uid;
+      allow write: if isAuth();
+      allow delete: if isAuth();
     }
-    // Rate Limits
+
+    match /groupInviteTokens/{tokenId} {
+      allow read: if true;
+      allow write: if isAuth();
+      allow delete: if isAuth();
+    }
+
     match /rateLimits/{userId} {
-      allow get: if isOwner(userId) || isAdmin();
-      allow list: if isAdmin();
-      allow write: if isOwner(userId) || isAdmin();
+      allow read, write: if isAuth() && request.auth.uid == userId || isAdmin();
     }
 
     match /requestCounters/{userId} {
-      allow get: if isOwner(userId) || isAdmin();
-      allow list: if isAdmin();
-      allow create, update: if isOwner(userId) &&
-        request.resource.data.pendingOutgoingCount is number &&
-        request.resource.data.pendingOutgoingCount >= 0 &&
-        request.resource.data.pendingOutgoingCount <= 3;
-      allow delete: if isAdmin();
+      allow read, write: if isAuth() && request.auth.uid == userId || isAdmin();
     }
 
-    // Backups e Sincronização
     match /userBackups/{uniqueCode} {
-      allow read, write: if isAuthenticated() || isAdmin(); 
+      allow read, write: if isAuth();
     }
 
     match /privateKeyBackups/{uniqueCode} {
-      allow read, write: if isAuthenticated() || isAdmin();
+      allow read, write: if isAuth();
     }
 
     match /deviceAuth/{fingerprint} {
-      allow read, write: if isAuthenticated() || isAdmin();
+      allow read, write: if isAuth();
     }
 
-    // Histórico (Espelho de mensagens)
     match /history/{msgId} {
-      allow create, read, list, delete: if isAuthenticated() || isAdmin();
+      allow read, write: if isAuth();
     }
 
-    // Grupos
     match /groups/{groupId} {
-      allow read: if isAuthenticated() && (request.auth.uid in resource.data.members || request.auth.uid == resource.data.adminUid);
-      allow create: if isAuthenticated() &&
-        request.resource.data.adminUid == request.auth.uid &&
-        request.auth.uid in request.resource.data.members &&
-        request.resource.data.get('memberJoinedAt', {}).get(request.auth.uid, 0) is number &&
-        isValidGroup(request.resource.data);
-      allow update: if isAuthenticated() &&
-        isValidGroup(request.resource.data) &&
-        (
-          request.auth.uid == resource.data.adminUid ||
-          isJoiningGroupWithInvite(groupId)
-        );
-      allow delete: if isAuthenticated() && resource.data.adminUid == request.auth.uid;
+      allow read: if isAuth() && (request.auth.uid in resource.data.members || request.auth.uid == resource.data.adminUid);
+      allow create: if isAuth() && request.resource.data.adminUid == request.auth.uid;
+      allow update: if isAuth() && (request.auth.uid == resource.data.adminUid || request.auth.uid in resource.data.members);
+      allow delete: if isAuth() && resource.data.adminUid == request.auth.uid;
 
-      // Mensagens de Grupo
       match /messages/{msgId} {
-        allow get: if isGroupMember(groupId) &&
-          resource.data.clientTimestamp >= groupJoinTime(groupId);
-        allow list: if isGroupMember(groupId) &&
-          request.query.limit != null &&
-          request.query.limit <= 25 &&
-          resource.data.clientTimestamp >= groupJoinTime(groupId);
-        allow create: if isGroupMember(groupId) &&
-          request.resource.data.senderId == request.auth.uid &&
-          request.resource.data.groupId == groupId &&
-          request.resource.data.clientTimestamp >= groupJoinTime(groupId) &&
-          !isMutedInGroup(groupId) &&
-          isValidMessage(request.resource.data);
-        allow delete: if isAuthenticated() && request.auth.uid == resource.data.senderId;
+        allow read, write: if isAuth() && request.auth.uid in get(/databases/$(database)/documents/groups/$(groupId)).data.members;
+        allow delete: if isAuth() && request.auth.uid == resource.data.senderId;
       }
     }
 
-    // Solicitações (Amizade e Grupos)
-    match /groupInviteTokens/{tokenId} {
-      allow read: if true;
-      allow create: if isAuthenticated() &&
-        request.resource.data.creatorUid == request.auth.uid &&
-        request.resource.data.groupId is string &&
-        request.resource.data.groupName is string &&
-        request.resource.data.createdAt is number &&
-        request.resource.data.expiresAt is number &&
-        request.resource.data.revoked == false &&
-        exists(/databases/$(database)/documents/groups/$(request.resource.data.groupId)) &&
-        get(/databases/$(database)/documents/groups/$(request.resource.data.groupId)).data.adminUid == request.auth.uid;
-      allow update, delete: if isAuthenticated() &&
-        resource.data.creatorUid == request.auth.uid;
-    }
-
     match /requests/{requestId} {
-      allow read: if isAuthenticated() && (request.auth.uid == resource.data.fromUid || request.auth.uid == resource.data.toUid);
-      allow create: if isAuthenticated() &&
-        isValidRequest(request.resource.data) &&
-        request.resource.data.fromUid == request.auth.uid &&
-        request.resource.data.status == 'pending' &&
-        (
-          (
-            request.resource.data.type == 'friend' &&
-            request.resource.data.fromUid != request.resource.data.toUid &&
-            targetAllowsFriendRequest() &&
-            friendRequestCounterIsValid()
-          ) ||
-          (
-            request.resource.data.type == 'group' &&
-            request.resource.data.groupId is string &&
-            exists(/databases/$(database)/documents/groups/$(request.resource.data.groupId)) &&
-            (
-              get(/databases/$(database)/documents/groups/$(request.resource.data.groupId)).data.adminUid == request.auth.uid ||
-              request.resource.data.toUid == request.auth.uid
-            )
-          )
-        );
-      allow update: if isAuthenticated() &&
-        isValidRequest(request.resource.data) &&
-        (
-          (request.auth.uid == resource.data.toUid && request.resource.data.status in ['accepted', 'declined']) ||
-          (request.auth.uid == resource.data.fromUid && request.resource.data.status == 'cancelled')
-        );
-      allow delete: if isAuthenticated() && (request.auth.uid == resource.data.fromUid || request.auth.uid == resource.data.toUid);
+      allow read: if isAuth() && (request.auth.uid == resource.data.fromUid || request.auth.uid == resource.data.toUid);
+      allow create: if isAuth() && request.resource.data.fromUid == request.auth.uid;
+      allow update: if isAuth() && (request.auth.uid == resource.data.toUid || request.auth.uid == resource.data.fromUid);
+      allow delete: if isAuth() && (request.auth.uid == resource.data.fromUid || request.auth.uid == resource.data.toUid);
     }
   }
 }
