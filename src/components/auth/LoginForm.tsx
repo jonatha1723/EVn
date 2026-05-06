@@ -1,5 +1,5 @@
 import React from 'react';
-import { UserCircle, Mail, Key, ArrowRight, ExternalLink } from 'lucide-react';
+import { UserCircle, Mail, Key, ArrowRight } from 'lucide-react';
 import { motion } from 'motion/react';
 
 interface LoginFormProps {
@@ -13,7 +13,6 @@ interface LoginFormProps {
   setDisplayName: (val: string) => void;
   authError: string;
   onSubmit: (e: React.FormEvent) => void;
-  onGoogleLogin: () => Promise<void>;
   isSubmitting: boolean;
 }
 
@@ -28,13 +27,8 @@ export const LoginForm: React.FC<LoginFormProps> = ({
   setDisplayName,
   authError,
   onSubmit,
-  onGoogleLogin,
   isSubmitting
 }) => {
-  const [acceptTerms, setAcceptTerms] = React.useState(false);
-  const [acceptPrivacy, setAcceptPrivacy] = React.useState(false);
-  const canProceed = !isRegistering || (acceptTerms && acceptPrivacy);
-
   return (
     <div className="bg-zinc-900 border border-zinc-800 rounded-3xl p-8 shadow-2xl">
       <form onSubmit={onSubmit} className="space-y-5">
@@ -94,7 +88,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({
 
         <button
           type="submit"
-          disabled={isSubmitting || !canProceed}
+          disabled={isSubmitting}
           className="w-full bg-emerald-600 text-white font-bold py-4 rounded-xl hover:bg-emerald-500 transition-all flex items-center justify-center gap-2 shadow-lg shadow-emerald-900/20 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {isSubmitting ? (
@@ -110,30 +104,6 @@ export const LoginForm: React.FC<LoginFormProps> = ({
             </>
           )}
         </button>
-
-        {!isRegistering && (
-          <button
-            type="button"
-            onClick={onGoogleLogin}
-            disabled={isSubmitting}
-            className="w-full bg-white text-zinc-900 font-bold py-4 rounded-xl hover:bg-zinc-200 transition-all"
-          >
-            Continuar com Google
-          </button>
-        )}
-
-        {isRegistering && (
-          <div className="space-y-3 pt-1">
-            <label className="flex items-start gap-2 text-xs text-zinc-400">
-              <input type="checkbox" checked={acceptTerms} onChange={(e) => setAcceptTerms(e.target.checked)} className="mt-0.5" />
-              <span>Concordo com os <a href="/termos.html" target="_blank" rel="noreferrer" className="text-emerald-400 inline-flex items-center gap-1">Termos de Uso <ExternalLink className="w-3 h-3" /></a>.</span>
-            </label>
-            <label className="flex items-start gap-2 text-xs text-zinc-400">
-              <input type="checkbox" checked={acceptPrivacy} onChange={(e) => setAcceptPrivacy(e.target.checked)} className="mt-0.5" />
-              <span>Concordo com a <a href="/privacidade.html" target="_blank" rel="noreferrer" className="text-emerald-400 inline-flex items-center gap-1">Política de Privacidade <ExternalLink className="w-3 h-3" /></a>.</span>
-            </label>
-          </div>
-        )}
       </form>
 
       <div className="mt-8 pt-6 border-t border-zinc-800 text-center">

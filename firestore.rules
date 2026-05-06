@@ -1,7 +1,6 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-
     function isAuth() {
       return request.auth != null;
     }
@@ -66,7 +65,7 @@ service cloud.firestore {
       }
     }
 
-    match /typing/{chatId} {
+    match /requests/{docId} {
       allow read, write: if isAuth();
     }
 
@@ -82,12 +81,8 @@ service cloud.firestore {
       allow delete: if isAuth();
     }
 
-    match /rateLimits/{userId} {
-      allow read, write: if isAuth() && request.auth.uid == userId || isAdmin();
-    }
-
-    match /requestCounters/{userId} {
-      allow read, write: if isAuth() && request.auth.uid == userId || isAdmin();
+    match /settings/{userId} {
+      allow read, write: if isAuth() && request.auth.uid == userId;
     }
 
     match /userBackups/{uniqueCode} {
@@ -125,16 +120,14 @@ service cloud.firestore {
       allow delete: if isAuth() && resource.data.adminUid == request.auth.uid;
 
       match /messages/{msgId} {
-        allow read, write: if isAuth() && request.auth.uid in get(/databases/$(database)/documents/groups/$(groupId)).data.members;
-        allow delete: if isAuth() && request.auth.uid == resource.data.senderId;
+        allow read, write: if isAuth() && (request.auth.uid in resource.data.members || request.auth.uid == resource.data.adminUid);
+        allow delete: if isAuth() && request.auth.uid == resource.data.senderUid;
       }
     }
 
-    match /requests/{requestId} {
-      allow read: if isAuth() && (request.auth.uid == resource.data.fromUid || request.auth.uid == resource.data.toUid);
-      allow create: if isAuth() && request.resource.data.fromUid == request.auth.uid;
-      allow update: if isAuth() && (request.auth.uid == resource.data.toUid || request.auth.uid == resource.data.fromUid);
-      allow delete: if isAuth() && (request.auth.uid == resource.data.fromUid || request.auth.uid == resource.data.toUid);
+    match /abuseReports/{docId} {
+      allow create: if isAuth();
+      allow read: if isAdmin();
     }
   }
 }

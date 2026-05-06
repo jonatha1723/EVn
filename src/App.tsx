@@ -12,7 +12,7 @@ import { GroupInviteToken, InviteToken } from './types';
 import { useSettings } from './hooks/useSettings';
 
 export default function App() {
-  const { user, loadingAuth, authError, authErrorCode, login, register, loginWithGoogle, completeGoogleProfile, logout } = useAuth();
+  const { user, loadingAuth, authError, authErrorCode, login, register, logout } = useAuth();
   const { settings, updateSettings } = useSettings();
   const { 
     userData, 
@@ -46,8 +46,6 @@ export default function App() {
   const [displayName, setDisplayName] = useState('');
   const [isRegistering, setIsRegistering] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [profileName, setProfileName] = useState('');
-  const [savingProfile, setSavingProfile] = useState(false);
 
   // Estado do convite
   const [pendingInvite, setPendingInvite] = useState<InviteToken | null>(null);
@@ -239,21 +237,6 @@ export default function App() {
     setIsSubmitting(false);
   };
 
-  const handleGoogleLogin = async () => {
-    setIsSubmitting(true);
-    await loginWithGoogle();
-    setIsSubmitting(false);
-  };
-
-  const needsProfileCompletion = !!user && !loadingAuth && !userData;
-
-  const handleCompleteProfile = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSavingProfile(true);
-    await completeGoogleProfile(profileName);
-    setSavingProfile(false);
-  };
-
   return (
     <AnimatePresence mode="wait">
       {!user && !loadingAuth ? (
@@ -277,27 +260,8 @@ export default function App() {
             authError={authError}
             authErrorCode={authErrorCode}
             onSubmit={handleAuthSubmit}
-            onGoogleLogin={handleGoogleLogin}
             isSubmitting={isSubmitting}
           />
-        </motion.div>
-      ) : needsProfileCompletion ? (
-        <motion.div key="profile-completion" className="min-h-screen bg-zinc-950 flex items-center justify-center p-6">
-          <form onSubmit={handleCompleteProfile} className="w-full max-w-md bg-zinc-900 border border-zinc-800 rounded-3xl p-8 space-y-4">
-            <h2 className="text-xl font-bold text-white">Escolha seu nome de usuário</h2>
-            <p className="text-xs text-zinc-500">Máximo de 10 caracteres.</p>
-            <input
-              value={profileName}
-              onChange={(e) => setProfileName(e.target.value.slice(0, 10))}
-              maxLength={10}
-              required
-              className="w-full bg-zinc-950 border border-zinc-800 rounded-xl py-3 px-4 text-zinc-100"
-              placeholder="Seu nome"
-            />
-            <button disabled={savingProfile} className="w-full bg-emerald-600 hover:bg-emerald-500 rounded-xl py-3 font-bold text-white">
-              {savingProfile ? 'Salvando...' : 'Continuar'}
-            </button>
-          </form>
         </motion.div>
       ) : user ? (
         <motion.div
