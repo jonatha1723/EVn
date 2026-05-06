@@ -103,7 +103,7 @@ export const useChat = (user: User | null) => {
         if (!data.uid) data.uid = user.uid;
         if (!data.email) data.email = user.email || '';
         if (!data.displayName) data.displayName = user.displayName || 'Usuário';
-        if (!data.uniqueCode) data.uniqueCode = Math.random().toString(36).substring(2, 15).toUpperCase();
+        if (!data.uniqueCode) data.uniqueCode = Array.from({ length: 11 }, () => Math.floor(Math.random() * 10)).join('');
         setUserData(data);
         
         // Espelhamento de perfil para o Backup se houver mudanças
@@ -583,15 +583,28 @@ export const useChat = (user: User | null) => {
       throw new Error("Voce nao pode adicionar a si mesmo.");
     }
 
-    const normalizedCode = code.trim().toUpperCase();
-    const q = query(collection(db, 'users'), where('uniqueCode', '==', normalizedCode), limit(1));
-    const querySnapshot = await getDocs(q);
+    const normalizedInput = code.trim();
+    const isLikelyNumericCode = /^\d{11}$/.test(normalizedInput);
+    if (!isLikelyNumericCode && normalizedInput.length <= 11) {
+      throw new Error("ID invalido. Use 11 digitos.");
+    }
+    let contactData: UserData | null = null;
 
-    if (querySnapshot.empty) {
-      throw new Error("Codigo invalido.");
+    const byCodeQuery = query(collection(db, 'users'), where('uniqueCode', '==', normalizedInput), limit(1));
+    const byCodeSnapshot = await getDocs(byCodeQuery);
+    if (!byCodeSnapshot.empty) {
+      contactData = byCodeSnapshot.docs[0].data() as UserData;
+    } else {
+      const uidInput = code.trim();
+      const byUidSnapshot = await getDoc(doc(db, 'users', uidInput));
+      if (byUidSnapshot.exists()) {
+        contactData = byUidSnapshot.data() as UserData;
+      }
     }
 
-    const contactData = querySnapshot.docs[0].data() as UserData;
+    if (!contactData) {
+      throw new Error("Codigo/UID invalido.");
+    }
     if (userData.contacts?.includes(contactData.uid)) {
       throw new Error("Contato ja adicionado.");
     }
@@ -625,7 +638,7 @@ export const useChat = (user: User | null) => {
       fromName: userData.displayName,
       fromCode: userData.uniqueCode,
       toUid: contactData.uid,
-      targetCode: normalizedCode,
+      targetCode: contactData.uniqueCode || normalizedInput,
       status: 'pending',
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
@@ -656,6 +669,21 @@ export const useChat = (user: User | null) => {
     await updateDoc(doc(db, 'users', user.uid), {
       'settings.blockedInviteUids': arrayUnion(targetUid)
     });
+
+    const pendingFromTarget = query(
+      collection(db, 'requests'),
+      where('toUid', '==', user.uid),
+      where('fromUid', '==', targetUid),
+      where('status', '==', 'pending')
+    );
+    const snap = await getDocs(pendingFromTarget);
+    const updates = snap.docs.map((requestDoc) =>
+      updateDoc(requestDoc.ref, {
+        status: 'declined',
+        updatedAt: serverTimestamp(),
+      })
+    );
+    await Promise.all(updates);
   };
 
   const unblockInviteUser = async (targetUid: string) => {

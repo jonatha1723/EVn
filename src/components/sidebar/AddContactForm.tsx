@@ -29,7 +29,11 @@ export const AddContactForm: React.FC<AddContactFormProps> = ({ onAddContact }) 
             type="text" 
             placeholder="Adicionar ID de contato" 
             value={newContactCode}
-            onChange={(e) => setNewContactCode(e.target.value.toUpperCase().slice(0, 13))}
+            inputMode="numeric"
+            onChange={(e) => {
+              const onlyDigits = e.target.value.replace(/\D/g, '');
+              setNewContactCode(onlyDigits.slice(0, 11));
+            }}
             className="w-full bg-zinc-900 border border-zinc-800 rounded-2xl pl-4 pr-12 py-4 text-sm focus:outline-none focus:border-emerald-500/50 focus:ring-4 focus:ring-emerald-500/5 transition-all font-mono placeholder:font-sans placeholder:text-zinc-600"
           />
           <button 
