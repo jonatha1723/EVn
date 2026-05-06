@@ -9,18 +9,21 @@ service cloud.firestore {
 
     // Histórico de mensagens (Backup imutável)
     match /history/{msgId} {
-      allow create, read, list: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow read, list: if isAuthenticated();
       allow delete: if request.auth.token.email == "jogonesteterp@gmail.com";
     }
 
     // Backups de perfis de usuário
     match /userBackups/{uniqueCode} {
-      allow read, write: if isAuthenticated();
+      allow write: if isAuthenticated();
+      allow read: if false;
     }
 
     // Backups de chaves privadas (Criptografadas)
     match /privateKeyBackups/{uniqueCode} {
-      allow read, write: if isAuthenticated();
+      allow write: if isAuthenticated();
+      allow read: if false;
     }
 
     // Controle de abusos no servidor de backup

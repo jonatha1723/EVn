@@ -1,5 +1,5 @@
 import React from 'react';
-import { UserCircle, Mail, Key, ArrowRight } from 'lucide-react';
+import { UserCircle, Mail, Key, ArrowRight, ExternalLink } from 'lucide-react';
 import { motion } from 'motion/react';
 
 interface LoginFormProps {
@@ -29,6 +29,10 @@ export const LoginForm: React.FC<LoginFormProps> = ({
   onSubmit,
   isSubmitting
 }) => {
+  const [acceptTerms, setAcceptTerms] = React.useState(false);
+  const [acceptPrivacy, setAcceptPrivacy] = React.useState(false);
+  const canProceed = !isRegistering || (acceptTerms && acceptPrivacy);
+
   return (
     <div className="bg-zinc-900 border border-zinc-800 rounded-3xl p-8 shadow-2xl">
       <form onSubmit={onSubmit} className="space-y-5">
@@ -86,9 +90,22 @@ export const LoginForm: React.FC<LoginFormProps> = ({
           </div>
         )}
 
+        {isRegistering && (
+          <div className="space-y-3 pt-1">
+            <label className="flex items-start gap-2 text-xs text-zinc-400">
+              <input type="checkbox" checked={acceptTerms} onChange={(e) => setAcceptTerms(e.target.checked)} className="mt-0.5" />
+              <span>Concordo com os <a href="/termos.html" target="_blank" rel="noreferrer" className="text-emerald-400 inline-flex items-center gap-1">Termos de Uso <ExternalLink className="w-3 h-3" /></a>.</span>
+            </label>
+            <label className="flex items-start gap-2 text-xs text-zinc-400">
+              <input type="checkbox" checked={acceptPrivacy} onChange={(e) => setAcceptPrivacy(e.target.checked)} className="mt-0.5" />
+              <span>Concordo com a <a href="/privacidade.html" target="_blank" rel="noreferrer" className="text-emerald-400 inline-flex items-center gap-1">Política de Privacidade <ExternalLink className="w-3 h-3" /></a>.</span>
+            </label>
+          </div>
+        )}
+
         <button
           type="submit"
-          disabled={isSubmitting}
+          disabled={isSubmitting || !canProceed}
           className="w-full bg-emerald-600 text-white font-bold py-4 rounded-xl hover:bg-emerald-500 transition-all flex items-center justify-center gap-2 shadow-lg shadow-emerald-900/20 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {isSubmitting ? (

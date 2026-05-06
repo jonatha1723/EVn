@@ -13,7 +13,6 @@ interface LoginProps {
   displayName: string;
   setDisplayName: (val: string) => void;
   authError: string;
-  authErrorCode: string;
   onSubmit: (e: React.FormEvent) => void;
   isSubmitting: boolean;
 }
@@ -33,9 +32,7 @@ export const Login: React.FC<LoginProps> = (props) => {
             {props.isRegistering ? 'Criar conta' : 'Entrar'}
           </h1>
           <p className="text-zinc-500 text-sm">
-            {props.isRegistering 
-              ? 'Preencha os dados para começar.' 
-              : 'Bem-vindo de volta!'}
+            {props.isRegistering ? 'Preencha os dados para começar.' : 'Bem-vindo de volta!'}
           </p>
         </div>
 
