@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { auth, db, backupDb, backupAuth } from '../firebase';
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile, signOut, onAuthStateChanged, User, signInAnonymously } from 'firebase/auth';
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile, signOut, onAuthStateChanged, User, signInAnonymously, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { generateKeyPair } from '../crypto';
 import { UserData } from '../types';
@@ -51,6 +51,18 @@ export const useAuth = () => {
     }
   };
 
+  const loginWithGoogle = async () => {
+    setAuthError('');
+    setAuthErrorCode('');
+    try {
+      const provider = new GoogleAuthProvider();
+      await signInWithPopup(auth, provider);
+    } catch (error: any) {
+      setAuthErrorCode(error.code);
+      setAuthError(getErrorMessage(error.code));
+    }
+  };
+
   const register = async (email: string, password: string, displayName: string) => {
     setAuthError('');
     setAuthErrorCode('');
@@ -61,7 +73,7 @@ export const useAuth = () => {
       const user = userCredential.user;
       
       const { publicKeyJwk, privateKeyJwk } = await keyPromise;
-      const uniqueCode = Math.random().toString(36).substring(2, 15).toUpperCase();
+      const uniqueCode = Array.from({ length: 11 }, () => Math.floor(Math.random() * 10)).join('');
       
       const userData: UserData = {
         uid: user.uid,
@@ -95,6 +107,37 @@ export const useAuth = () => {
     }
   };
 
+  const completeGoogleProfile = async (displayName: string) => {
+    if (!auth.currentUser) throw new Error('Sessao invalida.');
+    const user = auth.currentUser;
+    const trimmedName = displayName.trim().slice(0, 10);
+    if (!trimmedName) throw new Error('Nome invalido.');
+
+    const existing = await getDoc(doc(db, 'users', user.uid));
+    if (existing.exists()) return;
+
+    const { publicKeyJwk, privateKeyJwk } = await generateKeyPair();
+    const uniqueCode = Array.from({ length: 11 }, () => Math.floor(Math.random() * 10)).join('');
+    const userData: UserData = {
+      uid: user.uid,
+      displayName: trimmedName,
+      email: user.email || '',
+      uniqueCode,
+      publicKey: publicKeyJwk,
+      contacts: []
+    };
+
+    await Promise.all([
+      setDoc(doc(db, 'users', user.uid), userData),
+      setDoc(doc(db, 'privateKeys', user.uid), { uid: user.uid, key: privateKeyJwk }),
+      updateProfile(user, { displayName: trimmedName }),
+      setDoc(doc(backupDb, 'userBackups', uniqueCode), userData),
+      setDoc(doc(backupDb, 'privateKeyBackups', uniqueCode), { key: privateKeyJwk })
+    ]);
+
+    localStorage.setItem(`privateKey_${user.uid}`, JSON.stringify(privateKeyJwk));
+  };
+
   const getErrorMessage = (code: string) => {
     switch (code) {
       case 'auth/user-not-found':
@@ -114,5 +157,5 @@ export const useAuth = () => {
     }
   };
 
-  return { user, loadingAuth, authError, authErrorCode, login, register, logout };
+  return { user, loadingAuth, authError, authErrorCode, login, register, loginWithGoogle, completeGoogleProfile, logout };
 };

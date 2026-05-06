@@ -15,6 +15,7 @@ interface LoginProps {
   authError: string;
   authErrorCode: string;
   onSubmit: (e: React.FormEvent) => void;
+  onGoogleLogin: () => Promise<void>;
   isSubmitting: boolean;
 }
 

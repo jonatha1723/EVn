@@ -101,6 +101,13 @@ export const GroupManagementModal: React.FC<GroupManagementModalProps> = ({ isOp
     });
   };
 
+  const unban = async (uid: string) => {
+    if (!isAdmin) return;
+    await updateDoc(doc(db, 'groups', group.id), {
+      banned: arrayRemove(uid),
+    });
+  };
+
   const mute = async (uid: string, duration: number) => {
     if (!isAdmin || uid === group.adminUid) return;
     await updateDoc(doc(db, 'groups', group.id), {
@@ -181,6 +188,25 @@ export const GroupManagementModal: React.FC<GroupManagementModalProps> = ({ isOp
                   ))}
                 </div>
               </section>
+
+              {isAdmin && group.banned && group.banned.length > 0 && (
+                <section className="space-y-3">
+                  <h3 className="text-xs font-bold uppercase tracking-widest text-zinc-500">Banidos</h3>
+                  <div className="space-y-2">
+                    {group.banned.map(uid => (
+                      <div key={uid} className="bg-zinc-900/50 border border-zinc-800 rounded-2xl p-4 flex items-center gap-3">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-bold text-white truncate">{memberName(uid)}</p>
+                          <p className="text-[10px] text-zinc-600 font-mono truncate">{uid}</p>
+                        </div>
+                        <button onClick={() => unban(uid)} className="px-3 py-2 rounded-xl bg-zinc-800 hover:bg-emerald-500/10 hover:text-emerald-400 text-zinc-400 text-[10px] font-bold">
+                          Desbanir
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              )}
             </div>
           </motion.div>
         </div>

@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>EVn • Política de Privacidade</title>
+  <style>
+    :root { --bg:#09090b; --card:#111113; --line:#27272a; --text:#e4e4e7; --muted:#a1a1aa; --brand:#10b981; }
+    * { box-sizing: border-box; }
+    body { margin:0; font-family: Inter, system-ui, sans-serif; background:linear-gradient(180deg,#09090b,#0a0a0d); color:var(--text); }
+    .wrap { max-width: 960px; margin: 0 auto; padding: 24px; }
+    .top { display:flex; gap:12px; align-items:center; justify-content:space-between; margin-bottom:16px; }
+    .btn { border:1px solid var(--line); background:#121216; color:var(--text); padding:10px 14px; border-radius:12px; cursor:pointer; }
+    .btn:hover { border-color: var(--brand); color:#fff; }
+    .card { background:var(--card); border:1px solid var(--line); border-radius:18px; padding:20px; }
+    h1 { margin:0 0 8px; font-size:1.6rem; }
+    p.lead { margin:0; color:var(--muted); }
+    .tabs { display:flex; gap:8px; margin:18px 0; flex-wrap:wrap; }
+    .tab { padding:9px 12px; border-radius:999px; border:1px solid var(--line); color:var(--muted); text-decoration:none; }
+    .tab:hover { border-color:var(--brand); color:#fff; }
+    section { margin-top:18px; padding-top:18px; border-top:1px dashed var(--line); }
+    h2 { margin:0 0 8px; font-size:1rem; }
+    ul { margin: 8px 0 0 18px; color:var(--muted); }
+    .alert { margin-top:18px; border:1px solid #14532d; background:#052e1a; color:#86efac; padding:12px; border-radius:12px; font-size:.92rem; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="top">
+      <button class="btn" onclick="history.back()">← Voltar</button>
+      <button class="btn" onclick="window.close()">Fechar aba</button>
+    </div>
+
+    <div class="card">
+      <h1>Política de Privacidade do EVn</h1>
+      <p class="lead">Este documento explica de forma objetiva quais dados são processados e como protegemos suas informações.</p>
+
+      <nav class="tabs">
+        <a href="#dados" class="tab">Dados coletados</a>
+        <a href="#uso" class="tab">Como usamos</a>
+        <a href="#seguranca" class="tab">Segurança</a>
+        <a href="#direitos" class="tab">Seus direitos</a>
+      </nav>
+
+      <section id="dados">
+        <h2>1) Dados coletados</h2>
+        <ul>
+          <li>Dados de autenticação (UID, e-mail quando aplicável).</li>
+          <li>Nome de usuário e configurações básicas da conta.</li>
+          <li>Metadados necessários para funcionamento de chats e grupos.</li>
+        </ul>
+      </section>
+
+      <section id="uso">
+        <h2>2) Como usamos os dados</h2>
+        <ul>
+          <li>Para autenticar seu acesso e manter o serviço funcional.</li>
+          <li>Para entregar mensagens, convites e recursos de segurança.</li>
+          <li>Para prevenção de abuso e integridade da plataforma.</li>
+        </ul>
+      </section>
+
+      <section id="seguranca">
+        <h2>3) Segurança e retenção</h2>
+        <ul>
+          <li>Aplicamos controles de acesso por regras de banco e autenticação.</li>
+          <li>Dados são mantidos pelo período necessário à operação do serviço.</li>
+        </ul>
+      </section>
+
+      <section id="direitos">
+        <h2>4) Seus direitos</h2>
+        <ul>
+          <li>Você pode interromper o uso da plataforma a qualquer momento.</li>
+          <li>Ao continuar o cadastro, você declara que leu e concordou com esta política.</li>
+        </ul>
+      </section>
+
+      <div class="alert">Resumo: usamos apenas os dados necessários para autenticação, comunicação e segurança do EVn.</div>
+    </div>
+  </div>
+</body>
+</html>
