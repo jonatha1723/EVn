@@ -6,7 +6,13 @@ import { DecryptedMessage, MessagePosition } from '../../types';
 interface MessageMenuProps {
   selectedMessage: DecryptedMessage;
   onClose: () => void;
-  menuPos: { top: number; left: string | number; right: string | number; transform: string };
+  menuPos: {
+    top?: number;
+    bottom?: number;
+    left: string | number;
+    right: string | number;
+    transform: string;
+  };
   formatTime: (msg: DecryptedMessage) => string;
   onReply: (msg: DecryptedMessage) => void;
   onCopy: (text: string) => void;

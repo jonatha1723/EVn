@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { User } from 'firebase/auth';
 import { ShieldCheck, MessageSquare } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -8,10 +8,12 @@ import { MessageList } from './chat/MessageList';
 import { MessageInput } from './chat/MessageInput';
 import { ChatModals } from './chat/ChatModals';
 import { useChatWindow } from '../hooks/useChatWindow';
+import { GroupManagementModal } from './chat/GroupManagementModal';
 
 interface ChatWindowProps {
   user: User | null;
   activeContact: UserData | null;
+  contacts: UserData[];
   setActiveContact: (contact: UserData | null) => void;
   activeGroup: Group | null;
   setActiveGroup: (group: Group | null) => void;
@@ -27,11 +29,13 @@ interface ChatWindowProps {
   setTypingStatus: (isTyping: boolean) => Promise<void>;
   privateKey: JsonWebKey | null;
   settings: any;
+  userData: UserData | null;
 }
 
 export const ChatWindow: React.FC<ChatWindowProps> = ({
   user,
   activeContact,
+  contacts,
   setActiveContact,
   activeGroup,
   setActiveGroup,
@@ -46,8 +50,10 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
   isContactTyping,
   setTypingStatus,
   privateKey,
-  settings
+  settings,
+  userData
 }) => {
+  const [showGroupManagement, setShowGroupManagement] = useState(false);
   const {
     newMessage,
     setNewMessage,
@@ -102,6 +108,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
         onClearChat={() => setShowDeleteModal(true)}
         hasMessages={messages.length > 0}
         isTyping={isContactTyping}
+        onOpenGroupSettings={activeGroup ? () => setShowGroupManagement(true) : undefined}
       />
 
       <div className="flex-1 overflow-hidden flex flex-col relative">
@@ -112,7 +119,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
           messageLimit={messageLimit}
           onLoadMore={() => setMessageLimit(prev => prev + 50)}
           onSelectMessage={handleSelectMessage}
-          isTranslating={!!isTranslating}
+          isTranslating={isTranslating}
           translatedMessages={translatedMessages}
           selectedMessageId={selectedMessage?.id || null}
           privateKey={privateKey}
@@ -165,6 +172,16 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
         onDeleteForEveryone={onDeleteMessage}
         isOwnMessage={selectedMessage?.senderId === user?.uid}
       />
+
+      {activeGroup && (
+        <GroupManagementModal
+          isOpen={showGroupManagement}
+          onClose={() => setShowGroupManagement(false)}
+          group={activeGroup}
+          userData={userData}
+          contacts={contacts}
+        />
+      )}
     </div>
   );
 };

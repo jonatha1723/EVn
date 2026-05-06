@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { User } from 'firebase/auth';
-import { doc, onSnapshot, collection, query, where, addDoc, serverTimestamp, arrayUnion, writeBatch, deleteDoc, limit, getDocs, getDoc, setDoc, orderBy, limitToLast } from 'firebase/firestore';
+import { doc, onSnapshot, collection, query, where, serverTimestamp, arrayUnion, arrayRemove, writeBatch, deleteDoc, limit, getDocs, getDoc, setDoc, updateDoc, orderBy, limitToLast, increment } from 'firebase/firestore';
 import { db, backupDb, handleFirestoreError, OperationType } from '../firebase';
 import { encryptMessage, decryptMessage, encryptData } from '../crypto';
-import { UserData, Message, DecryptedMessage, LocalDeletedMessage, MessagePosition, Group } from '../types';
+import { UserData, Message, DecryptedMessage, Group } from '../types';
 import { useKeys } from './useKeys';
 import { useSocket } from './useSocket';
 import { compressImage } from '../lib/imageUtils';
@@ -23,6 +23,7 @@ export const useChat = (user: User | null) => {
   const [messageLimit, setMessageLimit] = useState(100);
   const [adminStats, setAdminStats] = useState<any>(null);
   const [allUsers, setAllUsers] = useState<UserData[]>([]);
+  const [outgoingFriendRequestCount, setOutgoingFriendRequestCount] = useState(0);
 
   const lastActiveContactId = useRef<string | null>(null);
   const { privateKey } = useKeys(user);
@@ -125,6 +126,28 @@ export const useChat = (user: User | null) => {
       clearInterval(presenceInterval);
     };
   }, [user]);
+
+  useEffect(() => {
+    if (!user) {
+      setOutgoingFriendRequestCount(0);
+      return;
+    }
+
+    const q = query(
+      collection(db, 'requests'),
+      where('fromUid', '==', user.uid),
+      where('type', '==', 'friend'),
+      where('status', '==', 'pending')
+    );
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      setOutgoingFriendRequestCount(snapshot.size);
+    }, (error) => {
+      console.warn("[Chat] Outgoing requests snapshot error:", error);
+    });
+
+    return () => unsubscribe();
+  }, [user?.uid]);
 
   useEffect(() => {
     if (!userData?.contacts || !Array.isArray(userData.contacts)) {
@@ -232,14 +255,29 @@ export const useChat = (user: User | null) => {
       // 1. Carregar TUDO o que temos no Banco Local primeiro
       const localMsgs = await localDb.getMessagesByChat(chatId);
       
+      const joinedAt = activeGroup?.memberJoinedAt?.[user.uid] ?? 0;
+      const localVisibleMessages = activeGroup
+        ? localMsgs
+            .filter(msg => (msg.clientTimestamp || 0) >= joinedAt)
+            .slice(-25)
+        : localMsgs;
+      
       if (currentVersion !== snapshotVersionRef.current) return;
-      setMessages(localMsgs);
+      setMessages(localVisibleMessages);
 
-      const q = query(
-        collection(db, activeGroup ? 'groups' : 'chats', chatId, 'messages'),
-        orderBy('timestamp', 'asc'),
-        limit(100)
-      );
+      const messageCollection = collection(db, activeGroup ? 'groups' : 'chats', chatId, 'messages');
+      const q = activeGroup
+        ? query(
+            messageCollection,
+            where('clientTimestamp', '>=', joinedAt),
+            orderBy('clientTimestamp', 'asc'),
+            limitToLast(25)
+          )
+        : query(
+            messageCollection,
+            orderBy('timestamp', 'asc'),
+            limit(100)
+          );
 
       activeUnsub = onSnapshot(q, async (snap) => {
         const removedIds = snap.docChanges()
@@ -325,6 +363,9 @@ export const useChat = (user: User | null) => {
 
   const sendMessage = async (text: string, replyToId?: string) => {
     if (!user || (!activeContact && !activeGroup) || !userData || !text.trim()) return;
+    if (activeGroup?.mutedUntil?.[user.uid] && activeGroup.mutedUntil[user.uid] > Date.now()) {
+      throw new Error("Voce esta mutado neste grupo.");
+    }
 
     const clientTimestamp = Date.now();
     const chatId = activeGroup ? activeGroup.id : [user.uid, activeContact!.uid].sort().join('_');
@@ -403,6 +444,9 @@ export const useChat = (user: User | null) => {
 
   const sendFile = async (file: File) => {
     if (!user || (!activeContact && !activeGroup) || !userData) return;
+    if (activeGroup?.mutedUntil?.[user.uid] && activeGroup.mutedUntil[user.uid] > Date.now()) {
+      throw new Error("Voce esta mutado neste grupo.");
+    }
     
     if (!file.type.startsWith('image/')) {
       throw new Error("Apenas imagens são permitidas.");
@@ -533,8 +577,93 @@ export const useChat = (user: User | null) => {
     }
   };
 
+  const sendFriendRequest = async (code: string) => {
+    if (!user || !userData || !code.trim()) return;
+    if (code.trim().toUpperCase() === userData.uniqueCode) {
+      throw new Error("Voce nao pode adicionar a si mesmo.");
+    }
+
+    const normalizedCode = code.trim().toUpperCase();
+    const q = query(collection(db, 'users'), where('uniqueCode', '==', normalizedCode), limit(1));
+    const querySnapshot = await getDocs(q);
+
+    if (querySnapshot.empty) {
+      throw new Error("Codigo invalido.");
+    }
+
+    const contactData = querySnapshot.docs[0].data() as UserData;
+    if (userData.contacts?.includes(contactData.uid)) {
+      throw new Error("Contato ja adicionado.");
+    }
+
+    if (contactData.settings?.blockedInviteUids?.includes(user.uid)) {
+      throw new Error("Este usuario bloqueou seus convites.");
+    }
+
+    if (outgoingFriendRequestCount >= 3) {
+      throw new Error("Voce ja tem 3 pedidos pendentes. Cancele um no sininho para enviar outro.");
+    }
+
+    if (contactData.settings?.friendRequestsMode === 'auto') {
+      const batch = writeBatch(db);
+      batch.update(doc(db, 'users', user.uid), { contacts: arrayUnion(contactData.uid) });
+      batch.update(doc(db, 'users', contactData.uid), { contacts: arrayUnion(user.uid) });
+      await batch.commit();
+      return;
+    }
+
+    const requestId = `friend_${user.uid}_${contactData.uid}`;
+    const existingRequest = await getDoc(doc(db, 'requests', requestId));
+    if (existingRequest.exists() && existingRequest.data().status === 'pending') {
+      throw new Error("Pedido ja enviado. Acompanhe pelo sininho.");
+    }
+
+    const batch = writeBatch(db);
+    batch.set(doc(db, 'requests', requestId), {
+      id: requestId,
+      type: 'friend',
+      fromUid: user.uid,
+      fromName: userData.displayName,
+      fromCode: userData.uniqueCode,
+      toUid: contactData.uid,
+      targetCode: normalizedCode,
+      status: 'pending',
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    });
+    batch.set(doc(db, 'requestCounters', user.uid), {
+      pendingOutgoingCount: increment(1),
+      updatedAt: serverTimestamp(),
+    }, { merge: true });
+    await batch.commit();
+  };
+
+  const updateUserPrivacySettings = async (settingsUpdate: Partial<NonNullable<UserData['settings']>>) => {
+    if (!user) return;
+    await setDoc(doc(db, 'users', user.uid), {
+      settings: {
+        ...(userData?.settings || {}),
+        ...settingsUpdate,
+      }
+    }, { merge: true });
+  };
+
+  const blockInviteUser = async (targetUid: string) => {
+    if (!user) return;
+    await updateDoc(doc(db, 'users', user.uid), {
+      'settings.blockedInviteUids': arrayUnion(targetUid)
+    });
+  };
+
+  const unblockInviteUser = async (targetUid: string) => {
+    if (!user) return;
+    await updateDoc(doc(db, 'users', user.uid), {
+      'settings.blockedInviteUids': arrayRemove(targetUid)
+    });
+  };
+
   const deleteMessage = async (msgId: string) => {
-    const colName = activeGroup ? 'group_messages' : 'chats';
+    const colName = activeGroup ? 'groups' : 'chats';
     const chatId = activeGroup ? activeGroup.id : [user?.uid, activeContact?.uid].sort().join('_');
     
     setLocalDeletedMessages(prev => {
@@ -688,7 +817,11 @@ export const useChat = (user: User | null) => {
     messages: allMessages,
     sendMessage,
     sendFile,
-    addContact,
+    addContact: sendFriendRequest,
+    updateUserPrivacySettings,
+    blockInviteUser,
+    unblockInviteUser,
+    outgoingFriendRequestCount,
     deleteMessage,
     clearChatLocally,
     factoryReset,

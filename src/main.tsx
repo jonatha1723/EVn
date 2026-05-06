@@ -1,4 +1,4 @@
-import {StrictMode, Component, ErrorInfo, ReactNode} from 'react';
+import React, {StrictMode, ErrorInfo, ReactNode} from 'react';
 import {createRoot} from 'react-dom/client';
 import App from './App.tsx';
 import './index.css';
@@ -11,8 +11,16 @@ registerSW({
   }
 });
 
-class ErrorBoundary extends Component<{children: ReactNode}, {hasError: boolean}> {
-  constructor(props: {children: ReactNode}) {
+type ErrorBoundaryProps = {
+  children: ReactNode;
+};
+
+type ErrorBoundaryState = {
+  hasError: boolean;
+};
+
+class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  constructor(props: ErrorBoundaryProps) {
     super(props);
     this.state = { hasError: false };
   }

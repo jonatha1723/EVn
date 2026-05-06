@@ -10,8 +10,9 @@ export interface UserData {
   role?: 'admin' | 'user';
   lastActive?: any;
   settings?: {
-    autoAcceptFriends?: boolean;
+    friendRequestsMode?: 'manual' | 'auto';
     autoAcceptGroups?: boolean;
+    blockedInviteUids?: string[];
   };
 }
 
@@ -20,7 +21,9 @@ export interface Group {
   name: string;
   adminUid: string;
   members: string[];
+  memberJoinedAt?: Record<string, number>;
   banned?: string[];
+  mutedUntil?: Record<string, number>;
   imageIndex: number;
   customImageUrl?: string;
   createdAt: any;
@@ -33,16 +36,22 @@ export interface GroupRequest {
   type: 'friend' | 'group';
   fromUid: string;
   fromName: string;
+  fromCode?: string;
   toUid: string;
+  targetCode?: string;
   groupId?: string;
   groupName?: string;
-  status: 'pending' | 'accepted' | 'declined';
+  status: 'pending' | 'accepted' | 'declined' | 'cancelled';
   createdAt: any;
+  updatedAt?: any;
 }
 
 export interface Message {
   id: string;
   senderId: string;
+  senderUid?: string;
+  senderCode?: string;
+  receiverCode?: string | null;
   receiverId?: string; // Para mensagens privadas
   groupId?: string; // Para mensagens de grupo
   chatId: string;
@@ -86,4 +95,14 @@ export interface InviteToken {
   expiresAt: number;
   used: boolean;
   usedBy?: string;
+}
+
+export interface GroupInviteToken {
+  id?: string;
+  groupId: string;
+  groupName: string;
+  creatorUid: string;
+  createdAt: number;
+  expiresAt: number;
+  revoked: boolean;
 }

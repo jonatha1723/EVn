@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowLeft, Trash2 } from 'lucide-react';
+import { ArrowLeft, Trash2, Settings } from 'lucide-react';
 import { UserData } from '../../types';
 import { safeToDate, getRelativeTime } from '../../lib/dateUtils';
 
@@ -9,6 +9,7 @@ interface ChatHeaderProps {
   onClearChat: () => void;
   hasMessages: boolean;
   isTyping: boolean;
+  onOpenGroupSettings?: () => void;
 }
 
 export const ChatHeader: React.FC<ChatHeaderProps> = ({ 
@@ -16,7 +17,8 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
   onBack, 
   onClearChat,
   hasMessages,
-  isTyping
+  isTyping,
+  onOpenGroupSettings
 }) => {
   const presenceStatus = (() => {
     if (activeContact.email === 'Grupo') {
@@ -51,10 +53,19 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
           <h2 className="font-bold text-lg truncate text-white tracking-tight">{activeContact.displayName}</h2>
           {presenceStatus}
         </div>
+        {activeContact.email === 'Grupo' && onOpenGroupSettings && (
+          <button
+            onClick={onOpenGroupSettings}
+            className="p-2.5 text-zinc-500 hover:text-emerald-400 hover:bg-emerald-500/5 rounded-xl transition-all ml-auto"
+            title="Opcoes do grupo"
+          >
+            <Settings className="w-5 h-5" />
+          </button>
+        )}
         {hasMessages && (
           <button
             onClick={onClearChat}
-            className="p-2.5 text-zinc-500 hover:text-red-400 hover:bg-red-500/5 rounded-xl transition-all ml-auto"
+            className="p-2.5 text-zinc-500 hover:text-red-400 hover:bg-red-500/5 rounded-xl transition-all"
             title="Limpar Conversa"
           >
             <Trash2 className="w-5 h-5" />

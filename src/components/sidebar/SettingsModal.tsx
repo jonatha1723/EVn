@@ -1,7 +1,8 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, Type, Palette, Monitor, Sun, Moon, Square, LayoutGrid } from 'lucide-react';
+import { X, Type, Palette, Monitor, Sun, Moon, Square, LayoutGrid, Shield, UserX } from 'lucide-react';
 import { ChatTheme } from '../../hooks/useSettings';
+import { UserData } from '../../types';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -12,9 +13,22 @@ interface SettingsModalProps {
     letterSpacing: number;
   };
   onUpdate: (settings: any) => void;
+  userData: UserData | null;
+  contacts: UserData[];
+  onUpdateUserPrivacySettings: (settings: Partial<NonNullable<UserData['settings']>>) => Promise<void>;
+  onUnblockInviteUser: (uid: string) => Promise<void>;
 }
 
-export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings, onUpdate }) => {
+export const SettingsModal: React.FC<SettingsModalProps> = ({
+  isOpen,
+  onClose,
+  settings,
+  onUpdate,
+  userData,
+  contacts,
+  onUpdateUserPrivacySettings,
+  onUnblockInviteUser
+}) => {
   if (!isOpen) return null;
 
   const themes: { id: ChatTheme; name: string; icon: any; class: string }[] = [
@@ -147,6 +161,60 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
                   style={{ fontSize: `${settings.fontSize}px`, letterSpacing: `${settings.letterSpacing}px` }}
                 >
                   Legal! O tema está ficando ótimo.
+                </div>
+              </div>
+            </section>
+
+            <section className="space-y-4">
+              <div className="flex items-center gap-2 text-zinc-400">
+                <Shield className="w-4 h-4" />
+                <h3 className="text-xs font-bold uppercase tracking-widest">Pedidos e Bloqueios</h3>
+              </div>
+
+              <div className="space-y-4 bg-zinc-900/30 p-5 rounded-3xl border border-zinc-800">
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <p className="text-sm font-semibold text-zinc-200">Aceitar pedidos automaticamente</p>
+                    <p className="text-xs text-zinc-600 mt-1">Quando desligado, os pedidos chegam no sininho.</p>
+                  </div>
+                  <button
+                    onClick={() => onUpdateUserPrivacySettings({
+                      friendRequestsMode: userData?.settings?.friendRequestsMode === 'auto' ? 'manual' : 'auto'
+                    })}
+                    className={`w-12 h-7 rounded-full p-1 transition-all ${userData?.settings?.friendRequestsMode === 'auto' ? 'bg-emerald-600' : 'bg-zinc-800'}`}
+                  >
+                    <span className={`block w-5 h-5 bg-white rounded-full transition-transform ${userData?.settings?.friendRequestsMode === 'auto' ? 'translate-x-5' : ''}`} />
+                  </button>
+                </div>
+
+                <div className="border-t border-zinc-800 pt-4">
+                  <div className="flex items-center gap-2 mb-3 text-zinc-500">
+                    <UserX className="w-4 h-4" />
+                    <p className="text-[10px] font-bold uppercase tracking-widest">Bloqueados para convites</p>
+                  </div>
+                  {(!userData?.settings?.blockedInviteUids || userData.settings.blockedInviteUids.length === 0) ? (
+                    <p className="text-xs text-zinc-600">Nenhum usuario bloqueado.</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {userData.settings.blockedInviteUids.map(uid => {
+                        const contact = contacts.find(c => c.uid === uid);
+                        return (
+                          <div key={uid} className="flex items-center justify-between gap-3 bg-zinc-950 border border-zinc-800 rounded-2xl px-4 py-3">
+                            <div className="min-w-0">
+                              <p className="text-sm text-zinc-200 font-semibold truncate">{contact?.displayName || uid.slice(0, 8)}</p>
+                              <p className="text-[10px] text-zinc-600 font-mono truncate">{uid}</p>
+                            </div>
+                            <button
+                              onClick={() => onUnblockInviteUser(uid)}
+                              className="px-3 py-2 rounded-xl bg-zinc-800 hover:bg-emerald-600 text-zinc-300 hover:text-white text-[10px] font-bold uppercase tracking-widest transition-all"
+                            >
+                              Desbloquear
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
               </div>
             </section>

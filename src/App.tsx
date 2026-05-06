@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { arrayUnion, doc, getDoc, serverTimestamp, setDoc, updateDoc } from 'firebase/firestore';
 import { db } from './firebase';
 import { useAuth } from './hooks/useAuth';
 import { useChat } from './hooks/useChat';
@@ -8,7 +8,7 @@ import { Login } from './components/Login';
 import { Sidebar } from './components/Sidebar';
 import { ChatWindow } from './components/ChatWindow';
 import { InviteModal } from './components/sidebar/InviteModal';
-import { InviteToken } from './types';
+import { GroupInviteToken, InviteToken } from './types';
 import { useSettings } from './hooks/useSettings';
 
 export default function App() {
@@ -34,7 +34,11 @@ export default function App() {
     isContactTyping,
     setTypingStatus,
     hasKeys,
-    privateKey
+    privateKey,
+    updateUserPrivacySettings,
+    blockInviteUser,
+    unblockInviteUser,
+    outgoingFriendRequestCount
   } = useChat(user);
 
   const [email, setEmail] = useState('');
@@ -45,6 +49,7 @@ export default function App() {
 
   // Estado do convite
   const [pendingInvite, setPendingInvite] = useState<InviteToken | null>(null);
+  const [pendingGroupInvite, setPendingGroupInvite] = useState<GroupInviteToken | null>(null);
   const [inviteError, setInviteError] = useState('');
 
   React.useEffect(() => {
@@ -77,19 +82,22 @@ export default function App() {
     const processInvite = async () => {
       const params = new URLSearchParams(window.location.search);
       const inviteId = params.get('invite');
+      const groupInviteId = params.get('groupInvite');
 
-      if (!inviteId) return;
+      if (!inviteId && !groupInviteId) return;
 
       // Guardar o ID do convite no localStorage para processar após login
       if (!user) {
-        localStorage.setItem('pendingInviteId', inviteId);
+        if (inviteId) localStorage.setItem('pendingInviteId', inviteId);
+        if (groupInviteId) localStorage.setItem('pendingGroupInviteId', groupInviteId);
         // Limpar URL sem recarregar
         window.history.replaceState({}, document.title, window.location.pathname);
         return;
       }
 
       try {
-        await loadInvite(inviteId);
+        if (inviteId) await loadInvite(inviteId);
+        if (groupInviteId) await loadGroupInvite(groupInviteId);
       } catch {
         // Erro já tratado dentro de loadInvite
       }
@@ -109,6 +117,11 @@ export default function App() {
     if (pendingId) {
       localStorage.removeItem('pendingInviteId');
       loadInvite(pendingId);
+    }
+    const pendingGroupId = localStorage.getItem('pendingGroupInviteId');
+    if (pendingGroupId) {
+      localStorage.removeItem('pendingGroupInviteId');
+      loadGroupInvite(pendingGroupId);
     }
   }, [user, userData]);
 
@@ -161,8 +174,55 @@ export default function App() {
     });
   };
 
+  const loadGroupInvite = async (inviteId: string) => {
+    try {
+      const tokenDoc = await getDoc(doc(db, 'groupInviteTokens', inviteId));
+      if (!tokenDoc.exists()) {
+        setInviteError('Este convite de grupo nao existe ou ja foi removido.');
+        return;
+      }
+
+      const tokenData = { id: tokenDoc.id, ...tokenDoc.data() } as GroupInviteToken;
+      if (Date.now() > tokenData.expiresAt || tokenData.revoked) {
+        setInviteError('Este convite de grupo expirou.');
+        return;
+      }
+
+      setPendingGroupInvite(tokenData);
+    } catch {
+      setInviteError('Erro ao processar o convite de grupo.');
+    }
+  };
+
+  const handleAcceptGroupInvite = async () => {
+    if (!pendingGroupInvite || !user) return;
+    await setDoc(doc(db, 'requests', `${pendingGroupInvite.groupId}_${user.uid}`), {
+      id: `${pendingGroupInvite.groupId}_${user.uid}`,
+      type: 'group',
+      fromUid: user.uid,
+      fromName: userData?.displayName || 'Usuario',
+      fromCode: userData?.uniqueCode || '',
+      toUid: user.uid,
+      groupId: pendingGroupInvite.groupId,
+      groupName: pendingGroupInvite.groupName,
+      status: 'pending',
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    });
+    await updateDoc(doc(db, 'groups', pendingGroupInvite.groupId), {
+      members: arrayUnion(user.uid),
+      [`memberJoinedAt.${user.uid}`]: Date.now(),
+    });
+    await updateDoc(doc(db, 'requests', `${pendingGroupInvite.groupId}_${user.uid}`), {
+      status: 'accepted',
+      updatedAt: serverTimestamp(),
+    });
+    setPendingGroupInvite(null);
+  };
+
   const handleDismissInvite = () => {
     setPendingInvite(null);
+    setPendingGroupInvite(null);
     setInviteError('');
   };
 
@@ -225,11 +285,16 @@ export default function App() {
               hasKeys={hasKeys}
               settings={settings}
               onUpdateSettings={updateSettings}
+              onUpdateUserPrivacySettings={updateUserPrivacySettings}
+              onBlockInviteUser={blockInviteUser}
+              onUnblockInviteUser={unblockInviteUser}
+              outgoingFriendRequestCount={outgoingFriendRequestCount}
             />
             
             <ChatWindow 
               user={user}
               activeContact={activeContact}
+              contacts={contacts}
               setActiveContact={setActiveContact}
               activeGroup={activeGroup}
               setActiveGroup={setActiveGroup}
@@ -245,6 +310,7 @@ export default function App() {
               setTypingStatus={setTypingStatus}
               privateKey={privateKey}
               settings={settings}
+              userData={userData}
             />
           </div>
 
@@ -255,6 +321,21 @@ export default function App() {
               onAccept={handleAcceptInvite}
               onDismiss={handleDismissInvite}
             />
+          )}
+
+          {pendingGroupInvite && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+              <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={handleDismissInvite} />
+              <div className="relative w-full max-w-sm bg-zinc-950 border border-zinc-800 rounded-3xl p-6 shadow-2xl text-center">
+                <p className="text-[10px] text-emerald-400 uppercase tracking-[0.25em] font-bold mb-2">Convite de grupo</p>
+                <h2 className="text-xl font-bold text-white mb-2">{pendingGroupInvite.groupName}</h2>
+                <p className="text-xs text-zinc-500 mb-6">Ao entrar, voce so vera as mensagens permitidas a partir da sua entrada.</p>
+                <div className="grid grid-cols-2 gap-2">
+                  <button onClick={handleDismissInvite} className="py-3 rounded-2xl bg-zinc-800 text-zinc-300 font-bold text-xs uppercase tracking-widest">Cancelar</button>
+                  <button onClick={handleAcceptGroupInvite} className="py-3 rounded-2xl bg-emerald-600 text-white font-bold text-xs uppercase tracking-widest">Entrar</button>
+                </div>
+              </div>
+            </div>
           )}
 
           {/* Erro de Convite (toast) */}

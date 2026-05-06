@@ -5,7 +5,7 @@ import { X, Users, Check, Loader2 } from 'lucide-react';
 interface CreateGroupModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onCreate: (name: string, imageIndex: number, customImageUrl?: string) => Promise<void>;
+  onCreate: (name: string, imageIndex: number, customImageUrl?: string) => Promise<void | string>;
 }
 
 const PRESET_IMAGES = [

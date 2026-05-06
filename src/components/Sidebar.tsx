@@ -25,6 +25,10 @@ interface SidebarProps {
   hasKeys: boolean;
   settings: any;
   onUpdateSettings: (settings: any) => void;
+  onUpdateUserPrivacySettings: (settings: Partial<NonNullable<UserData['settings']>>) => Promise<void>;
+  onBlockInviteUser: (uid: string) => Promise<void>;
+  onUnblockInviteUser: (uid: string) => Promise<void>;
+  outgoingFriendRequestCount: number;
 }
 
 export const Sidebar: FC<SidebarProps> = ({
@@ -39,7 +43,11 @@ export const Sidebar: FC<SidebarProps> = ({
   onFactoryReset,
   hasKeys,
   settings,
-  onUpdateSettings
+  onUpdateSettings,
+  onUpdateUserPrivacySettings,
+  onBlockInviteUser,
+  onUnblockInviteUser,
+  outgoingFriendRequestCount
 }) => {
   const [isConfirming, setIsConfirming] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
@@ -48,7 +56,7 @@ export const Sidebar: FC<SidebarProps> = ({
   const [showNotifications, setShowNotifications] = useState(false);
   const [activeTab, setActiveTab] = useState<'chats' | 'groups'>('chats');
 
-  const { groups, requests, createGroup, handleRequest, loadingGroups } = useGroups(userData, userData);
+  const { groups, requests, sentRequests, createGroup, handleRequest, cancelRequest, loadingGroups } = useGroups(userData, userData);
 
   const handleReset = async () => {
     if (!isConfirming) {
@@ -118,6 +126,10 @@ export const Sidebar: FC<SidebarProps> = ({
         onClose={() => setShowSettings(false)}
         settings={settings}
         onUpdate={onUpdateSettings}
+        userData={userData}
+        onUpdateUserPrivacySettings={onUpdateUserPrivacySettings}
+        contacts={contacts}
+        onUnblockInviteUser={onUnblockInviteUser}
       />
       
       <CreateGroupModal 
@@ -130,7 +142,11 @@ export const Sidebar: FC<SidebarProps> = ({
         isOpen={showNotifications}
         onClose={() => setShowNotifications(false)}
         requests={requests}
+        sentRequests={sentRequests}
         onHandleRequest={handleRequest}
+        onCancelRequest={cancelRequest}
+        onBlockInviteUser={onBlockInviteUser}
+        outgoingFriendRequestCount={outgoingFriendRequestCount}
       />
 
       {/* Search/Add Section (Só para chats) */}
