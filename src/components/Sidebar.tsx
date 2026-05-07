@@ -58,6 +58,20 @@ export const Sidebar: FC<SidebarProps> = ({
 
   const { groups, requests, sentRequests, createGroup, handleRequest, cancelRequest, loadingGroups } = useGroups(userData, userData);
 
+  useEffect(() => {
+    if (!activeGroup) return;
+    const freshGroup = groups.find((group) => group.id === activeGroup.id);
+
+    if (!freshGroup) {
+      setActiveGroup(null);
+      return;
+    }
+
+    if (freshGroup !== activeGroup) {
+      setActiveGroup(freshGroup);
+    }
+  }, [groups, activeGroup, setActiveGroup]);
+
   const handleReset = async () => {
     if (!isConfirming) {
       setIsConfirming(true);
